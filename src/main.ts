@@ -5,7 +5,8 @@ import { Online } from './online';
 import { loadRelays } from './net/config';
 import { loadCallsign, saveCallsign } from './callsign';
 import { drawWorld } from './scene';
-import { keysInput } from './sim/input';
+import { keysInput, NO_INPUT } from './sim/input';
+import { drawStart } from './start';
 import { loadSystems, systemById, systemLabel } from './systems';
 import { loadSky, skyFrom, type Sky } from './sky';
 
@@ -13,7 +14,9 @@ import { loadSky, skyFrom, type Sky } from './sky';
 const app = new App((Date.now() ^ (Math.random() * 0x7fffffff)) >>> 0);
 const presenter = new Presenter(document.getElementById('screen') as HTMLCanvasElement);
 const clock = new Clock();
-let mode: 'online' | 'offline' = 'online';
+// The site opens on the start screen; Enter goes into the system found behind it.
+let mode: 'start' | 'online' | 'offline' = 'start';
+let startTicks = 0;
 let online: Online | null = null;
 let soundOn = false;
 
@@ -44,8 +47,15 @@ document.addEventListener('visibilitychange', () => online?.setHidden(document.v
 
 window.addEventListener('keydown', (e) => {
   app.speaker.unlock();
+  if (mode === 'start' && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
+    mode = online ? 'online' : 'offline';
+    if (mode === 'offline') app.openMenu();
+    app.keys.clear();
+    e.preventDefault();
+    return;
+  }
   if (e.code === 'Escape') {
-    mode = mode === 'online' && online ? 'offline' : 'online';
+    mode = mode !== 'offline' || !online ? 'offline' : 'online';
     if (mode === 'offline') app.openMenu();
     e.preventDefault();
     return;
@@ -101,7 +111,13 @@ function onlineFrame(o: Online, n: number) {
 
 function frame(now: number) {
   const n = clock.ticks(now);
-  if (mode === 'online' && online) {
+  if (mode === 'start') {
+    // The system is found and kept behind the start screen.
+    for (let i = 0; i < n; i++) online?.tick(NO_INPUT);
+    startTicks += n;
+    drawStart(app.screen, skyFor('sol') ?? app.game.starPoints(), startTicks);
+    app.speaker.set(false, 0, 0);
+  } else if (mode === 'online' && online) {
     onlineFrame(online, n);
   } else {
     for (let i = 0; i < n; i++) app.tick();

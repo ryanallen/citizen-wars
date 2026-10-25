@@ -9,10 +9,12 @@ import { Peer, type Channel } from './peer';
 import { CAP, NOTE_EVERY_MS, WORLDS_PER_SECOND, handshakeRelays, type RelayList } from './config';
 import { Signals, noteEvent, watchNotes, keeps, type Signal } from './lobby';
 import { matchAt, playfieldFor } from './matches';
-import { matchEvent } from './tally';
+import { killsEvent } from './tally';
 import { encodeInput, decodeInput, encodeWorld, decodeWorld, b64, unb64, type Control, type Member } from './wire';
 
 const TICK_HZ = 1193182 / 16390;
+/** How often a host may rewrite its game's kills (tally.ts). */
+const KILLS_EVERY_MS = 10000;
 
 interface Remote {
   pubkey: string;
@@ -45,7 +47,7 @@ export interface HostOptions {
   refuseDirect?: (pubkey: string) => boolean;
   /** The system's stars, mass and radius in Suns. */
   stars?: { mass: number; radius: number }[];
-  /** The wall clock the matches run on; tests set it. */
+  /** The wall clock; tests set it. */
   now?: () => number;
 }
 
@@ -69,24 +71,19 @@ export class Host {
   private admitting: Promise<void> = Promise.resolve();
   private worldsSent = 0;
   private stopped = false;
-  /** The match this host is running; a host taking over keeps the one it was handed. */
-  private match: number;
-  /**
-   * Whether this match is written as played: it is the moment a person presses
-   * a key in it (tally.ts), alone against the robot stand-in or with others.
-   */
-  private played = false;
+  /** The game's kills as last written, and when; a host taking over writes its own first. */
+  private written = 0;
+  private writtenAt = 0;
 
   constructor(private o: HostOptions) {
     this.side = o.side ?? 0;
     this.joined = o.joined ?? Date.now();
     this.game = o.game ?? new Game(o.seed ?? (Date.now() >>> 0), undefined, MAX_SHIPS);
-    this.match = matchAt(this.now());
     if (!o.game) {
-      // Online the star is the system's, shown and pulling as this match's playfield deals (matches.ts).
+      // Online the star is the system's, shown and pulling as the playfield deals (matches.ts).
       const g = this.game;
       g.rules = 'respawn';
-      Object.assign(g.options, playfieldFor(o.system, this.match));
+      Object.assign(g.options, playfieldFor(o.system, matchAt(this.now())));
       g.present[this.side] = true;
       g.setStars(o.stars ?? [{ mass: 1, radius: 1 }]);
       g.startRound();
@@ -99,17 +96,6 @@ export class Host {
   }
 
   private now(): number { return (this.o.now ?? Date.now)(); }
-
-  /** A new match: the next playfield, scores back to nothing, every ship at its start. */
-  private newMatch(match: number): void {
-    const g = this.game;
-    this.played = false;
-    this.match = match;
-    Object.assign(g.options, playfieldFor(this.o.system, match));
-    g.kills.fill(0);
-    g.deaths.fill(0);
-    g.startRound();
-  }
 
   get pubkey(): string { return this.o.me.pubkey; }
   get system(): string { return this.o.system; }
@@ -143,11 +129,20 @@ export class Host {
     return this.notes.publish(await noteEvent(this.o.me, { system: this.o.system, players: members.length, cap: CAP, members }));
   }
 
-  /** The note that counts a finished match. */
-  private async publishMatch(match: number, players: number): Promise<number> {
+  /** Write the game's kills when they have changed, at most every KILLS_EVERY_MS. */
+  private writeKills(): void {
+    const kills = this.game.kills.reduce((t, k) => t + k, 0);
+    if (kills === this.written || this.now() - this.writtenAt < KILLS_EVERY_MS) return;
+    this.written = kills;
+    this.writtenAt = this.now();
+    void this.publishKills(this.game.born, kills);
+  }
+
+  /** The note that counts a game's kills. */
+  private async publishKills(born: number, kills: number): Promise<number> {
     if (this.stopped) return 0;
     await this.notes.connect();
-    return this.notes.publish(await matchEvent(this.o.me, this.o.system, match, players));
+    return this.notes.publish(await killsEvent(this.o.me, this.o.system, born, kills));
   }
 
   private signal(from: string, s: Signal): void {
@@ -267,15 +262,14 @@ export class Host {
     const g = this.game;
     g.inputs[this.side] = local;
     for (const m of this.members.values()) g.inputs[m.side] = m.input;
-    const match = matchAt(this.now());
-    if (match !== this.match) this.newMatch(match);
-    if (!this.played && (local.keys || [...this.members.values()].some((m) => m.input.keys))) {
-      this.played = true;
-      void this.publishMatch(this.match, 1 + this.members.size);
-    }
+    // The game begins when a person first presses a key: a tab idling behind the
+    // start screen is only a robot killing an empty ship, and counts nothing.
+    if (!g.born && (local.keys || [...this.members.values()].some((m) => m.input.keys))) g.born = Math.floor(this.now() / 1000);
+    if (g.born) g.elapsed++;
     if (g.step() === 'round-over') {
       g.startRound();
     }
+    if (g.born) this.writeKills();
     this.hostTick++;
     const due = Math.floor((this.hostTick * WORLDS_PER_SECOND) / TICK_HZ);
     if (due > this.worldsSent) {

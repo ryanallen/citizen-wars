@@ -1,26 +1,36 @@
-// Matches played, site-wide (ticket, Decisions: how are matches counted): the
-// host of a match a person flew in (pressed a key, against a robot or another
-// person) writes one stored note for it when it ends, named by its system and
-// match number, and every page counts the different names. A host taking over
-// writes the same name, so a match is counted once however many hosts it had.
+// Kills, site-wide (ticket, Decisions: how are kills counted): every kill by a
+// robot or a person in a game a person is in. The host writes one stored note
+// per game, named by its system and the second it began, holding the game's
+// kills so far, rewritten as they rise. A host taking over carries the kills
+// and writes the same name, so each page takes the highest per name and sums
+// them.
 
 import { Identity, Pool, type NostrEvent } from './nostr';
 import { KIND_NOTE } from './config';
 
-export const MATCH_TAG = 'citizen-wars-match';
+export const GAME_TAG = 'citizen-wars-game';
 /** Notes asked for a page; relays cap a query at a few hundred, so the count reads back in pages. */
 const PAGE = 500;
 const PAGES = 40;
 
-export function matchEvent(me: Identity, system: string, match: number, players: number) {
+export function killsEvent(me: Identity, system: string, born: number, kills: number) {
   return me.sign({
     kind: KIND_NOTE,
-    tags: [['d', `${MATCH_TAG}/${system}/${match}`], ['t', MATCH_TAG]],
-    content: JSON.stringify({ system, match, players, v: 1 }),
+    tags: [['d', `${GAME_TAG}/${system}/${born}`], ['t', GAME_TAG]],
+    content: JSON.stringify({ system, born, kills, v: 1 }),
   });
 }
 
-const nameOf = (e: NostrEvent): string | null => e.tags.find((t) => t[0] === 'd' && t[1]?.startsWith(`${MATCH_TAG}/`))?.[1] ?? null;
+const nameOf = (e: NostrEvent): string | null => e.tags.find((t) => t[0] === 'd' && t[1]?.startsWith(`${GAME_TAG}/`))?.[1] ?? null;
+
+function killsOf(e: NostrEvent): number {
+  try {
+    const k = Number(JSON.parse(e.content).kills);
+    return Number.isFinite(k) && k > 0 ? Math.floor(k) : 0;
+  } catch {
+    return 0;
+  }
+}
 
 function page(pool: Pool, until: number | undefined, waitMs: number): Promise<NostrEvent[]> {
   return new Promise((resolve) => {
@@ -28,21 +38,27 @@ function page(pool: Pool, until: number | undefined, waitMs: number): Promise<No
     let stop = () => {};
     const done = () => { clearTimeout(timer); stop(); resolve(found); };
     const timer = setTimeout(done, waitMs);
-    stop = pool.subscribe([{ kinds: [KIND_NOTE], '#t': [MATCH_TAG], limit: PAGE, ...(until ? { until } : {}) }], (e) => found.push(e), done);
+    stop = pool.subscribe([{ kinds: [KIND_NOTE], '#t': [GAME_TAG], limit: PAGE, ...(until ? { until } : {}) }], (e) => found.push(e), done);
   });
 }
 
-/** Every match note on the relays, newest page first, as the number of different matches; null with no relay. */
-export async function countMatches(pool: Pool, waitMs = 4000): Promise<number | null> {
+/** Every game note on the relays, newest page first: the sum of each game's highest kills; null with no relay. */
+export async function countKills(pool: Pool, waitMs = 4000): Promise<number | null> {
   if (!(await pool.connect()).length) return null;
-  const names = new Set<string>();
+  const games = new Map<string, number>();
+  const seen = new Set<string>();
   let until: number | undefined;
   for (let n = 0; n < PAGES; n++) {
     const events = await page(pool, until, waitMs);
-    const before = names.size;
-    for (const e of events) { const d = nameOf(e); if (d) names.add(d); }
-    if (!events.length || names.size === before) break;
+    const before = seen.size;
+    for (const e of events) {
+      const d = nameOf(e);
+      if (!d) continue;
+      seen.add(e.id);
+      games.set(d, Math.max(games.get(d) ?? 0, killsOf(e)));
+    }
+    if (!events.length || seen.size === before) break;
     until = Math.min(...events.map((e) => e.created_at));
   }
-  return names.size;
+  return [...games.values()].reduce((t, k) => t + k, 0);
 }

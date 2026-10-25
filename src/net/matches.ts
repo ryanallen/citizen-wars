@@ -1,10 +1,10 @@
-// Online matches (ticket, Decisions: matches): the clock is cut into matches of
-// MATCH_MS, the same everywhere, and each match picks one of the DOS game's four
-// playfields from the system's name and the match number alone. Every host, and
-// the next host after a hand-over, works out the same answer with no message, so
-// it costs nothing however many systems are flying. Each system deals the four in
-// a shuffled order, every one once before any comes back, never the same twice in
-// a row, and each system's order is its own, so neighbours differ.
+// Playfields (ticket, Decisions: what is a system's star): the clock is cut into
+// spans of MATCH_MS, and a game takes one of the DOS game's four playfields from
+// the system's name and the span its host began in, keeping it while it lasts.
+// Games no longer end on the clock (owner, 25 October 2026); the spans only deal.
+// Each system deals the four in a shuffled order, every one once before any comes
+// back, never the same twice in a row, and each system's order is its own, so
+// neighbours differ.
 
 import { hash } from './config';
 

@@ -23,8 +23,6 @@ export interface SceneOptions {
   sky?: [number, number][] | null;
   /** The scoreboard, while Tab is held. */
   scoreboard?: boolean;
-  /** The match-over board (result.ts), over everything while it shows. */
-  result?: { title: string; rows: ScoreRow[] } | null;
 }
 
 export interface ScoreRow { side: number; name: string; kills: number; deaths: number }
@@ -104,8 +102,7 @@ export function drawWorld(g: Game, s: Screen, o: SceneOptions = {}): void {
     if (name && g.state[i] > 0 && !(g.ctl[side] & 2)) s.text(name, X(g.x(i)) - ((name.length - 1) * 10) / 2, Y(g.y(i)) + 14);
   }
   if (o.label) s.text(o.label, 10, 8);
-  if (o.result) drawScoreboard(o.result.rows, s, o, ['MATCH OVER', o.result.title]);
-  else if (o.scoreboard) drawScoreboard(scoreRows(g, o), s, o);
+  if (o.scoreboard) drawScoreboard(g, s, o);
   else if (me !== null) drawScores(g, s, o);
 }
 
@@ -134,12 +131,12 @@ function drawScores(g: Game, s: Screen, o: SceneOptions): void {
   });
 }
 
-/** The scoreboard (design-system.md, Scoreboard), under heading lines centred in it for the match-over board. */
-function drawScoreboard(rows: ScoreRow[], s: Screen, o: SceneOptions, heading: string[] = []): void {
+/** The scoreboard (design-system.md, Scoreboard). */
+function drawScoreboard(g: Game, s: Screen, o: SceneOptions): void {
+  const rows = scoreRows(g, o);
   const width = 26;
   const pad = (v: string | number, n: number) => String(v).padStart(n);
-  const centre = (t: string) => ' '.repeat(Math.max(0, Math.floor((width - t.length) / 2))) + t;
-  const lines = [...heading.map(centre), ...(heading.length ? [''] : []), ' CALL SIGN  KILLS  DEATHS ', ...rows.map((r) => `${r.side === o.me ? '>' : ' '}${r.name.padEnd(9)} ${pad(r.kills, 6)} ${pad(r.deaths, 7)} `)];
+  const lines = [' CALL SIGN  KILLS  DEATHS ', ...rows.map((r) => `${r.side === o.me ? '>' : ' '}${r.name.padEnd(9)} ${pad(r.kills, 6)} ${pad(r.deaths, 7)} `)];
   const left = 320 - (width * 10) / 2 + 5;
   const top = 100 - ((lines.length + 2) * 8) / 2;
   const edge = '\x19' + '\x1d'.repeat(width) + '\x16';

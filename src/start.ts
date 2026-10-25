@@ -18,10 +18,15 @@ export const CONTROLS = [
   'TAB SCORES  F8 SOUND  F9 CALL SIGN  ESC OFFLINE',
 ];
 export const PROMPT = 'PRESS ENTER TO START';
-/** The site-wide count of matches a person played (net/tally.ts). */
-export const matchesPlayed = (n: number): string => `${n} ${n === 1 ? 'GAME' : 'GAMES'} WORLDWIDE`;
-/** How a match is won, said once on the start screen. */
-export const RULE = 'MOST KILLS IN A 3 MINUTE MATCH WINS';
+/** The site-wide count of kills, by robots or people, in games a person is in (net/tally.ts). */
+export const killsWorldwide = (n: number): string => `${n} ${n === 1 ? 'KILL' : 'KILLS'} WORLDWIDE`;
+/** How long a game has lasted: M:SS, or H:MM:SS from an hour. */
+export function gameClock(seconds: number): string {
+  const t = Math.floor(seconds);
+  const ss = String(t % 60).padStart(2, '0');
+  const m = Math.floor(t / 60);
+  return m < 60 ? `${m}:${ss}` : `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}:${ss}`;
+}
 
 const F = 65536;
 const centred = (s: Screen, text: string, y: number) => s.text(text, 320 - (text.length * 10) / 2 + 5, y);
@@ -67,14 +72,13 @@ export class StartScreen {
     }
   }
 
-  draw(s: Screen, stars: [number, number][], matches: number | null = null): void {
+  draw(s: Screen, stars: [number, number][], kills: number | null = null): void {
     s.clear();
     for (const [x, y] of stars) s.xorPixel(x, y);
     // Solid over the stars, so no star shows through a letter.
     this.positions().forEach(([x, y], n) => s.stamp(font, this.blocks[n].code, x, y));
     CONTROLS.forEach((line, n) => centred(s, line, 108 + n * 10));
-    centred(s, RULE, 162);
     if (!(this.ticks & 32)) centred(s, PROMPT, 176);
-    if (matches !== null) centred(s, matchesPlayed(matches), 192);
+    if (kills !== null) centred(s, killsWorldwide(kills), 192);
   }
 }

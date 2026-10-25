@@ -1,9 +1,9 @@
 import { expect, test } from 'vitest';
 import { Identity, type Filter, type NostrEvent, type Pool } from './nostr';
-import { MATCH_TAG, countMatches, matchEvent } from './tally';
+import { GAME_TAG, countKills, killsEvent } from './tally';
 import { Host } from './session';
-import { MATCH_MS } from './matches';
 import { NO_INPUT, keysInput } from '../sim/input';
+import { gameClock } from '../start';
 
 /** A pool holding these events, answering with at most `cap` a query, newest first, as relays do. */
 function fakePool(events: NostrEvent[], cap: number, open = 1) {
@@ -11,7 +11,7 @@ function fakePool(events: NostrEvent[], cap: number, open = 1) {
     connect: async () => Array(open).fill({}),
     subscribe(filters: Filter[], onEvent: (e: NostrEvent) => void, onEose?: () => void) {
       const f = filters[0];
-      events.filter((e) => e.tags.some((t) => t[0] === 't' && t[1] === MATCH_TAG) && (f.until === undefined || e.created_at <= f.until))
+      events.filter((e) => e.tags.some((t) => t[0] === 't' && t[1] === GAME_TAG) && (f.until === undefined || e.created_at <= f.until))
         .sort((a, b) => b.created_at - a.created_at).slice(0, Math.min(cap, f.limit ?? cap)).forEach(onEvent);
       onEose?.();
       return () => {};
@@ -21,39 +21,49 @@ function fakePool(events: NostrEvent[], cap: number, open = 1) {
 
 const at = (e: NostrEvent, t: number): NostrEvent => ({ ...e, created_at: t });
 
-test('a match is counted once however many hosts wrote it, across pages', async () => {
+test('each game counts its highest kills once, whichever host wrote them, across pages', async () => {
   const a = Identity.random();
   const b = Identity.random();
   const events: NostrEvent[] = [];
-  for (let m = 0; m < 30; m++) events.push(at(await matchEvent(a, 'sol', m, 2), 1000 + m));
-  // A second host after a hand-over writes three of the same matches again, and one more system.
-  for (let m = 27; m < 30; m++) events.push(at(await matchEvent(b, 'sol', m, 3), 1000 + m));
-  events.push(at(await matchEvent(b, 'alpha-centauri', 5, 2), 1010));
-  expect(await countMatches(fakePool(events, 7), 50)).toBe(31);
+  // Twenty games of 3 kills each, every one written as it rose: 1, 2, 3.
+  for (let g = 0; g < 20; g++) for (let k = 1; k <= 3; k++) events.push(at(await killsEvent(a, 'sol', 5000 + g, k), 1000 + g * 3 + k));
+  // A host taking over game 19 carries its 3 kills and adds 2 more.
+  events.push(at(await killsEvent(b, 'sol', 5019, 5), 2000));
+  events.push(at(await killsEvent(b, 'alpha-centauri', 7000, 4), 2001));
+  expect(await countKills(fakePool(events, 7), 50)).toBe(19 * 3 + 5 + 4);
 });
 
 test('no relay answering counts nothing, not zero', async () => {
-  expect(await countMatches(fakePool([], 7, 0), 50)).toBeNull();
-  expect(await countMatches(fakePool([], 7), 50)).toBe(0);
+  expect(await countKills(fakePool([], 7, 0), 50)).toBeNull();
+  expect(await countKills(fakePool([], 7), 50)).toBe(0);
 });
 
-test('a host writes a match when a person flew in it, against a robot or another person', () => {
-  let clock = 10 * MATCH_MS;
+test('a game begins at the first key: before it, no clock and nothing written', () => {
+  let clock = 1_000_000;
   const host = new Host({ system: 'sol', me: Identity.random(), relays: { notes: [], all: ['x'] }, callsign: 'T-1', now: () => clock });
   const written: [number, number][] = [];
-  (host as unknown as { publishMatch: (m: number, p: number) => void }).publishMatch = (m, p) => { written.push([m, p]); };
-  // Match 10: the host sits on the start screen, pressing nothing. Not played.
+  (host as unknown as { publishKills: (b: number, k: number) => void }).publishKills = (b, k) => { written.push([b, k]); };
+  const g = host.game;
+  // The tab idles behind the start screen while the robot kills its empty ship.
+  for (let n = 0; n < 100; n++) host.tick(NO_INPUT);
+  g.kills[1] = 4;
+  clock += 20000;
   host.tick(NO_INPUT);
-  clock += MATCH_MS;
-  // Match 11: the host alone flies against the robot stand-in; written at the first key, once.
-  host.tick(NO_INPUT);
-  expect(written).toEqual([]);
+  expect([g.elapsed, g.born, written]).toEqual([0, 0, []]);
+  // A key: the game is born, its clock runs, and its kills are written.
   host.tick(keysInput(1));
-  host.tick(keysInput(1));
-  expect(written).toEqual([[11, 1]]);
-  // Match 12: someone joins and flies; the host stays idle.
-  clock += MATCH_MS;
-  host.members.set('k', { pubkey: 'k', callsign: 'T-2', side: 1, joined: 0, input: keysInput(1), ack: 0, peer: null, via: null });
+  expect(g.born).toBe(1020);
   host.tick(NO_INPUT);
-  expect(written).toEqual([[11, 1], [12, 2]]);
+  expect(g.elapsed).toBe(2);
+  expect(written).toEqual([[1020, 4]]);
+  // Rewritten only once kills change, and at most every ten seconds.
+  g.kills[0] = 1;
+  host.tick(NO_INPUT);
+  clock += 10000;
+  host.tick(NO_INPUT);
+  expect(written).toEqual([[1020, 4], [1020, 5]]);
+});
+
+test('the game clock reads M:SS, and H:MM:SS from an hour', () => {
+  expect([0, 59.9, 61, 3599, 3600, 3725].map(gameClock)).toEqual(['0:00', '0:59', '1:01', '59:59', '1:00:00', '1:02:05']);
 });

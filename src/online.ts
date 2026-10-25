@@ -11,10 +11,10 @@ import { Host, Client, type Outcome } from './net/session';
 import type { Member } from './net/wire';
 import { SYSTEMS, rank, systemById } from './systems';
 import { gameFor } from './sim/snapshot';
-import { countMatches } from './net/tally';
+import { countKills } from './net/tally';
 
-/** How often to count again, so a game started anywhere shows within a minute. */
-const COUNT_EVERY_MS = 60000;
+/** How often to count again, so kills anywhere show soon. */
+const COUNT_EVERY_MS = 30000;
 
 export type Phase =
   | { kind: 'connecting'; attempt: number; system: string | null }
@@ -42,8 +42,8 @@ export class Online {
   /** A local game against a robot, flown while connecting. */
   readonly practice = new Game((Date.now() >>> 0) ^ 0x5eed);
   log: string[] = [];
-  /** Matches a person has played, site-wide; null until the relays answer. */
-  matches: number | null = null;
+  /** Kills in games a person is in, site-wide; null until the relays answer. */
+  kills: number | null = null;
   private counting = false;
   private countTimer: ReturnType<typeof setTimeout> | null = null;
   private notes: Pool;
@@ -103,10 +103,10 @@ export class Online {
     if (!this.counting) { this.counting = true; void this.count(); }
   }
 
-  /** Count the matches now, then once a minute. */
+  /** Count the kills now, then every COUNT_EVERY_MS. */
   private async count(): Promise<void> {
-    const n = await countMatches(this.notes);
-    if (n !== null && n >= (this.matches ?? 0)) this.matches = n;
+    const n = await countKills(this.notes);
+    if (n !== null && n >= (this.kills ?? 0)) this.kills = n;
     if (!this.stopped) this.countTimer = setTimeout(() => void this.count(), COUNT_EVERY_MS);
   }
 

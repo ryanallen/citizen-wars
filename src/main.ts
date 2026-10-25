@@ -1,16 +1,14 @@
 import { App } from './app';
-import { Clock } from './clock';
+import { Clock, TICK_HZ } from './clock';
 import { Presenter } from './present';
 import { Online } from './online';
 import { loadRelays } from './net/config';
 import { cleanCallsign, loadCallsign, saveCallsign } from './callsign';
-import { drawWorld, scoreRows } from './scene';
-import { Results } from './result';
+import { drawWorld } from './scene';
 import { keysInput, NO_INPUT } from './sim/input';
-import { StartScreen, matchesPlayed } from './start';
+import { StartScreen, killsWorldwide, gameClock } from './start';
 import { loadSystems, systemById, systemLabel } from './systems';
 import { loadSky, skyFrom, type Sky } from './sky';
-import { msLeft } from './net/matches';
 
 // Offline: the DOS menu and game. Online (the default): a system with others.
 const app = new App((Date.now() ^ (Math.random() * 0x7fffffff)) >>> 0);
@@ -20,7 +18,6 @@ const clock = new Clock();
 let mode: 'start' | 'online' | 'offline' = 'start';
 const start = new StartScreen();
 let online: Online | null = null;
-const results = new Results();
 let soundOn = false;
 
 const wanted = () => decodeURIComponent(location.hash.slice(1)) || null;
@@ -95,8 +92,6 @@ function onlineFrame(o: Online, n: number) {
   const names: Record<number, string> = {};
   for (const m of v.roster) names[m.side] = cleanCallsign(m.callsign);
   const inSystem = o.phase.kind !== 'connecting';
-  if (!inSystem) results.reset();
-  const result = inSystem ? results.frame(Date.now(), scoreRows(v.game, { callsigns: names }), v.side) : null;
   const sys = o.system ? systemById(o.system) : undefined;
   drawWorld(v.game, app.screen, {
     callsigns: names,
@@ -104,16 +99,14 @@ function onlineFrame(o: Online, n: number) {
     label: inSystem && sys ? systemLabel(sys) : undefined,
     sky: inSystem ? skyFor(o.system) : null,
     scoreboard: tab && inSystem,
-    result,
   });
   if (inSystem && !tab) {
-    // The match clock, top centre: the playfield changes when it runs out.
-    const left = Math.ceil(msLeft(Date.now()) / 1000);
-    const t = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+    // The game clock, top centre: how long this game has lasted.
+    const t = gameClock(v.game.elapsed / TICK_HZ);
     app.screen.text(t, 320 - (t.length * 10) / 2 + 5, 8);
-    if (o.matches !== null) {
-      const m = matchesPlayed(o.matches);
-      app.screen.text(m, 320 - (m.length * 10) / 2 + 5, 16);
+    if (o.kills !== null) {
+      const k = killsWorldwide(o.kills);
+      app.screen.text(k, 320 - (k.length * 10) / 2 + 5, 16);
     }
   }
   const p = o.phase;
@@ -130,15 +123,13 @@ function frame(now: number) {
   if (mode === 'start') {
     // The system is found and kept behind the start screen.
     for (let i = 0; i < n; i++) online?.tick(NO_INPUT);
-    results.reset();
     start.step(n);
-    start.draw(app.screen, skyFor('sol') ?? app.game.starPoints(), online?.matches ?? null);
+    start.draw(app.screen, skyFor('sol') ?? app.game.starPoints(), online?.kills ?? null);
     app.speaker.set(false, 0, 0);
   } else if (mode === 'online' && online) {
     onlineFrame(online, n);
   } else {
     for (let i = 0; i < n; i++) app.tick();
-    results.reset();
     app.sound();
   }
   presenter.draw(app.screen);

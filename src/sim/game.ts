@@ -77,6 +77,13 @@ export class Game {
 
   tick = 0;
   planetFrame = 0;
+  /**
+   * Online only: ticks the game has lasted since a person first pressed a key
+   * in it, and when that was in Unix seconds, which names the game (net/tally.ts).
+   * The host counts them; the world carries them to clients and the next host.
+   */
+  elapsed = 0;
+  born = 0;
 
   // Object slots: ship s is slot 8s, its seven torpedoes 8s+1 to 8s+7.
   px: number[]; py: number[]; vx: number[]; vy: number[];

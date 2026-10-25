@@ -65,3 +65,12 @@ test('drawing a world from state shows the ships and bars', () => {
   while (s.px[192 * 640 + 24 + bar]) bar++;
   expect(bar).toBe(127);
 });
+
+test('the game clock and its name ride in the world, to clients and the next host', () => {
+  const g = busy(3);
+  g.elapsed = 123456;
+  g.born = 1_800_000_000;
+  const h = new Game(9);
+  loadWorld(h, saveWorld(g));
+  expect([h.elapsed, h.born]).toEqual([123456, 1_800_000_000]);
+});

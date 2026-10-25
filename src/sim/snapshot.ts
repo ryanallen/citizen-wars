@@ -39,7 +39,7 @@ class Reader {
   u32(): number { const v = this.view.getUint32(this.at); this.at += 4; return v; }
 }
 
-const VERSION = 2;
+const VERSION = 3;
 const RULES = ['original', 'last-standing', 'respawn'] as const;
 
 const bits = (a: boolean[]) => a.reduce((m, v, k) => (v ? m | (1 << k) : m), 0);
@@ -53,6 +53,7 @@ export function saveWorld(g: Game): Uint8Array {
   w.u8(VERSION); w.u8(g.ships); w.u8(RULES.indexOf(g.rules));
   w.u16(g.w); w.u16(g.h);
   w.u8(g.tick); w.u8(g.planetFrame); w.u32(g.starSeed);
+  w.u32(g.elapsed); w.u32(g.born);
   w.u8((g.options.planet ? 1 : 0) | (g.options.gravity ? 2 : 0) | (g.paused ? 4 : 0));
   w.u16(bits(g.present)); w.u16(bits(g.options.robot));
   w.u8(g.bodies.length);
@@ -96,6 +97,7 @@ export function loadWorld(g: Game, bytes: Uint8Array): void {
   g.rules = RULES[r.u8()];
   g.w = r.u16(); g.h = r.u16();
   g.tick = r.u8(); g.planetFrame = r.u8(); g.starSeed = r.u32();
+  g.elapsed = r.u32(); g.born = r.u32();
   const f = r.u8();
   // Whether sound is on stays each player's own.
   g.options.planet = !!(f & 1); g.options.gravity = !!(f & 2); g.paused = !!(f & 4);

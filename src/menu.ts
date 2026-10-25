@@ -13,7 +13,6 @@ export const FLY_STEPS = 30;
 export const TICKS_PER_STEP = 4;
 export const HOLD_TICKS = 291;
 export const PAGE_TICKS = 582;
-const CREDIT = 'AFTER SPACEWAR \x7f 1985 B SEILER';
 
 type Phase =
   | { kind: 'title-hold'; ticks: number; next: 'fly' | 'page' }
@@ -55,7 +54,6 @@ export class Menu {
 
   private titleText(): void {
     const s = this.screen;
-    s.text(CREDIT, 320 - (CREDIT.length * 10) / 2 + 5, 152);
     const [l, r] = this.wins();
     s.blit(shipLeft, 8, 160, 176);
     let pen = s.text(' = ', 170, 176);

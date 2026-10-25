@@ -1,2 +1,5 @@
 node_modules/
 dist/
+# Nothing from the DOS original lives here (ticket, Before Phase 0).
+*.exe
+*.EXE

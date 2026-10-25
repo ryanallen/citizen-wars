@@ -1,0 +1,47 @@
+name: Test pilot
+
+# A test pilot on another network: flies one robot pilot on the live site into
+# a named system and reports where it landed (ticket, Phase 3: two real networks).
+on:
+  workflow_dispatch:
+    inputs:
+      system:
+        description: System to join
+        required: true
+      seconds:
+        description: How long to fly
+        default: '60'
+
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Fly
+        env:
+          SYSTEM: ${{ inputs.system }}
+          SECONDS_TO_FLY: ${{ inputs.seconds }}
+        run: |
+          node -e "
+          const { chromium } = require('playwright');
+          (async () => {
+            const b = await chromium.launch();
+            const p = await b.newPage();
+            await p.goto('https://ryanallen.github.io/citizen-wars/test.html?pilots=1&system=' + process.env.SYSTEM);
+            const end = Date.now() + Number(process.env.SECONDS_TO_FLY) * 1000;
+            let last = '';
+            while (Date.now() < end) {
+              last = await p.evaluate(() => JSON.stringify(window.pilots.map((x) => ({ phase: x.phase.kind, system: x.system, log: x.log.slice(-4) }))));
+              if (last.includes('\"client\"')) break;
+              await new Promise((r) => setTimeout(r, 2000));
+            }
+            console.log('PILOT', last);
+            await b.close();
+            process.exit(last.includes('\"client\"') ? 0 : 1);
+          })();"

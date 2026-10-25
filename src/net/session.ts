@@ -9,6 +9,7 @@ import { Peer, type Channel } from './peer';
 import { CAP, NOTE_EVERY_MS, WORLDS_PER_SECOND, handshakeRelays, type RelayList } from './config';
 import { Signals, noteEvent, watchNotes, keeps, type Signal } from './lobby';
 import { matchAt, playfieldFor } from './matches';
+import { matchEvent } from './tally';
 import { encodeInput, decodeInput, encodeWorld, decodeWorld, b64, unb64, type Control, type Member } from './wire';
 
 const TICK_HZ = 1193182 / 16390;
@@ -70,6 +71,8 @@ export class Host {
   private stopped = false;
   /** The match this host is running; a host taking over keeps the one it was handed. */
   private match: number;
+  /** The most people in the system at once this match; two or more makes it a real match (tally.ts). */
+  private peak = 1;
 
   constructor(private o: HostOptions) {
     this.side = o.side ?? 0;
@@ -97,6 +100,8 @@ export class Host {
   /** A new match: the next playfield, scores back to nothing, every ship at its start. */
   private newMatch(match: number): void {
     const g = this.game;
+    if (this.peak >= 2) void this.publishMatch(this.match, this.peak);
+    this.peak = 1 + this.members.size;
     this.match = match;
     Object.assign(g.options, playfieldFor(this.o.system, match));
     g.kills.fill(0);
@@ -134,6 +139,13 @@ export class Host {
     await Promise.all([this.notes.connect(), this.signalPool.connect()]);
     const members = this.roster().map((m) => m.pubkey);
     return this.notes.publish(await noteEvent(this.o.me, { system: this.o.system, players: members.length, cap: CAP, members }));
+  }
+
+  /** The note that counts a finished match. */
+  private async publishMatch(match: number, players: number): Promise<number> {
+    if (this.stopped) return 0;
+    await this.notes.connect();
+    return this.notes.publish(await matchEvent(this.o.me, this.o.system, match, players));
   }
 
   private signal(from: string, s: Signal): void {
@@ -253,6 +265,7 @@ export class Host {
     const g = this.game;
     g.inputs[this.side] = local;
     for (const m of this.members.values()) g.inputs[m.side] = m.input;
+    this.peak = Math.max(this.peak, 1 + this.members.size);
     const match = matchAt(this.now());
     if (match !== this.match) this.newMatch(match);
     if (g.step() === 'round-over') {

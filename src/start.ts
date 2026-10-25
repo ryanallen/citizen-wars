@@ -18,6 +18,8 @@ export const CONTROLS = [
   'TAB SCORES  F8 SOUND  F9 CALL SIGN  ESC OFFLINE',
 ];
 export const PROMPT = 'PRESS ENTER TO START';
+/** The site-wide count of matches two or more people played (net/tally.ts). */
+export const matchesPlayed = (n: number): string => `${n} ${n === 1 ? 'MATCH' : 'MATCHES'} PLAYED`;
 
 const F = 65536;
 const centred = (s: Screen, text: string, y: number) => s.text(text, 320 - (text.length * 10) / 2 + 5, y);
@@ -63,12 +65,13 @@ export class StartScreen {
     }
   }
 
-  draw(s: Screen, stars: [number, number][]): void {
+  draw(s: Screen, stars: [number, number][], matches: number | null = null): void {
     s.clear();
     for (const [x, y] of stars) s.xorPixel(x, y);
     // Solid over the stars, so no star shows through a letter.
     this.positions().forEach(([x, y], n) => s.stamp(font, this.blocks[n].code, x, y));
     CONTROLS.forEach((line, n) => centred(s, line, 108 + n * 10));
     if (!(this.ticks & 32)) centred(s, PROMPT, 176);
+    if (matches !== null) centred(s, matchesPlayed(matches), 192);
   }
 }

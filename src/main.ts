@@ -6,7 +6,7 @@ import { loadRelays } from './net/config';
 import { cleanCallsign, loadCallsign, saveCallsign } from './callsign';
 import { drawWorld } from './scene';
 import { keysInput, NO_INPUT } from './sim/input';
-import { StartScreen } from './start';
+import { StartScreen, matchesPlayed } from './start';
 import { loadSystems, systemById, systemLabel } from './systems';
 import { loadSky, skyFrom, type Sky } from './sky';
 import { msLeft } from './net/matches';
@@ -106,6 +106,10 @@ function onlineFrame(o: Online, n: number) {
     const left = Math.ceil(msLeft(Date.now()) / 1000);
     const t = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
     app.screen.text(t, 320 - (t.length * 10) / 2 + 5, 8);
+    if (o.matches !== null) {
+      const m = matchesPlayed(o.matches);
+      app.screen.text(m, 320 - (m.length * 10) / 2 + 5, 16);
+    }
   }
   const p = o.phase;
   if (p.kind === 'connecting') {
@@ -122,7 +126,7 @@ function frame(now: number) {
     // The system is found and kept behind the start screen.
     for (let i = 0; i < n; i++) online?.tick(NO_INPUT);
     start.step(n);
-    start.draw(app.screen, skyFor('sol') ?? app.game.starPoints());
+    start.draw(app.screen, skyFor('sol') ?? app.game.starPoints(), online?.matches ?? null);
     app.speaker.set(false, 0, 0);
   } else if (mode === 'online' && online) {
     onlineFrame(online, n);

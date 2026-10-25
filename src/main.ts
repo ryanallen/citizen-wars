@@ -6,7 +6,7 @@ import { loadRelays } from './net/config';
 import { loadCallsign, saveCallsign } from './callsign';
 import { drawWorld } from './scene';
 import { keysInput, NO_INPUT } from './sim/input';
-import { drawStart } from './start';
+import { StartScreen } from './start';
 import { loadSystems, systemById, systemLabel } from './systems';
 import { loadSky, skyFrom, type Sky } from './sky';
 
@@ -16,7 +16,7 @@ const presenter = new Presenter(document.getElementById('screen') as HTMLCanvasE
 const clock = new Clock();
 // The site opens on the start screen; Enter goes into the system found behind it.
 let mode: 'start' | 'online' | 'offline' = 'start';
-let startTicks = 0;
+const start = new StartScreen();
 let online: Online | null = null;
 let soundOn = false;
 
@@ -114,8 +114,8 @@ function frame(now: number) {
   if (mode === 'start') {
     // The system is found and kept behind the start screen.
     for (let i = 0; i < n; i++) online?.tick(NO_INPUT);
-    startTicks += n;
-    drawStart(app.screen, skyFor('sol') ?? app.game.starPoints(), startTicks);
+    start.step(n);
+    start.draw(app.screen, skyFor('sol') ?? app.game.starPoints());
     app.speaker.set(false, 0, 0);
   } else if (mode === 'online' && online) {
     onlineFrame(online, n);

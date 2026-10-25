@@ -39,6 +39,20 @@ export class Screen {
     }
   }
 
+  /** Set a frame's lit pixels centred on (x, y), as `blit` places it, leaving the rest as it is. */
+  stamp(sheet: Sheet, frame: number, x: number, y: number): void {
+    const rows = sheet.frames[frame];
+    const half = sheet.height >> 1;
+    for (let r = 0; r < rows.length; r++) {
+      const yy = y - half + r;
+      if (yy < 0 || yy >= SCREEN_H || !rows[r]) continue;
+      for (let c = 0; c < sheet.width; c++) {
+        const xx = x - half + c;
+        if (xx >= 0 && xx < SCREEN_W && rows[r] & (1 << (sheet.width - 1 - c))) this.px[yy * SCREEN_W + xx] = 1;
+      }
+    }
+  }
+
   /** Draw a frame opaquely, its left edge on the byte boundary at or left of x - 16 (`02AB:1CE2`). */
   blitOpaque(sheet: Sheet, frame: number, x: number, y: number): void {
     const rows = sheet.frames[frame];

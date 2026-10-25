@@ -45,17 +45,15 @@ test('a host writes a match when a person flew in it, against a robot or another
   // Match 10: the host sits on the start screen, pressing nothing. Not played.
   host.tick(NO_INPUT);
   clock += MATCH_MS;
+  // Match 11: the host alone flies against the robot stand-in; written at the first key, once.
   host.tick(NO_INPUT);
   expect(written).toEqual([]);
-  // Match 11: the host alone flies against the robot stand-in.
   host.tick(keysInput(1));
-  clock += MATCH_MS;
-  host.tick(NO_INPUT);
+  host.tick(keysInput(1));
   expect(written).toEqual([[11, 1]]);
   // Match 12: someone joins and flies; the host stays idle.
+  clock += MATCH_MS;
   host.members.set('k', { pubkey: 'k', callsign: 'T-2', side: 1, joined: 0, input: keysInput(1), ack: 0, peer: null, via: null });
   host.tick(NO_INPUT);
-  clock += MATCH_MS;
-  host.tick(NO_INPUT);
-  expect(written).toEqual([[11, 1], [12, 1]]);
+  expect(written).toEqual([[11, 1], [12, 2]]);
 });

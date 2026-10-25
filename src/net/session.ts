@@ -72,10 +72,10 @@ export class Host {
   /** The match this host is running; a host taking over keeps the one it was handed. */
   private match: number;
   /**
-   * The sides whose person pressed a key this match. One is a real match
-   * (tally.ts): a person alone flies against the robot stand-in.
+   * Whether this match is written as played: it is the moment a person presses
+   * a key in it (tally.ts), alone against the robot stand-in or with others.
    */
-  private flew = new Set<number>();
+  private played = false;
 
   constructor(private o: HostOptions) {
     this.side = o.side ?? 0;
@@ -103,8 +103,7 @@ export class Host {
   /** A new match: the next playfield, scores back to nothing, every ship at its start. */
   private newMatch(match: number): void {
     const g = this.game;
-    if (this.flew.size) void this.publishMatch(this.match, this.flew.size);
-    this.flew.clear();
+    this.played = false;
     this.match = match;
     Object.assign(g.options, playfieldFor(this.o.system, match));
     g.kills.fill(0);
@@ -268,10 +267,12 @@ export class Host {
     const g = this.game;
     g.inputs[this.side] = local;
     for (const m of this.members.values()) g.inputs[m.side] = m.input;
-    if (local.keys) this.flew.add(this.side);
-    for (const m of this.members.values()) if (m.input.keys) this.flew.add(m.side);
     const match = matchAt(this.now());
     if (match !== this.match) this.newMatch(match);
+    if (!this.played && (local.keys || [...this.members.values()].some((m) => m.input.keys))) {
+      this.played = true;
+      void this.publishMatch(this.match, 1 + this.members.size);
+    }
     if (g.step() === 'round-over') {
       g.startRound();
     }

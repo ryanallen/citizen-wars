@@ -19,7 +19,9 @@ export const CONTROLS = [
 ];
 export const PROMPT = 'PRESS ENTER TO START';
 /** The site-wide count of matches a person played (net/tally.ts). */
-export const matchesPlayed = (n: number): string => `${n} ${n === 1 ? 'GAME' : 'GAMES'}`;
+export const matchesPlayed = (n: number): string => `${n} ${n === 1 ? 'GAME' : 'GAMES'} WORLDWIDE`;
+/** How a match is won, said once on the start screen. */
+export const RULE = 'MOST KILLS IN A 3 MINUTE MATCH WINS';
 
 const F = 65536;
 const centred = (s: Screen, text: string, y: number) => s.text(text, 320 - (text.length * 10) / 2 + 5, y);
@@ -71,6 +73,7 @@ export class StartScreen {
     // Solid over the stars, so no star shows through a letter.
     this.positions().forEach(([x, y], n) => s.stamp(font, this.blocks[n].code, x, y));
     CONTROLS.forEach((line, n) => centred(s, line, 108 + n * 10));
+    centred(s, RULE, 162);
     if (!(this.ticks & 32)) centred(s, PROMPT, 176);
     if (matches !== null) centred(s, matchesPlayed(matches), 192);
   }

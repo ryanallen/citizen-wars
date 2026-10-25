@@ -4,7 +4,8 @@ import { Presenter } from './present';
 import { Online } from './online';
 import { loadRelays } from './net/config';
 import { cleanCallsign, loadCallsign, saveCallsign } from './callsign';
-import { drawWorld } from './scene';
+import { drawWorld, scoreRows } from './scene';
+import { Results } from './result';
 import { keysInput, NO_INPUT } from './sim/input';
 import { StartScreen, matchesPlayed } from './start';
 import { loadSystems, systemById, systemLabel } from './systems';
@@ -19,6 +20,7 @@ const clock = new Clock();
 let mode: 'start' | 'online' | 'offline' = 'start';
 const start = new StartScreen();
 let online: Online | null = null;
+const results = new Results();
 let soundOn = false;
 
 const wanted = () => decodeURIComponent(location.hash.slice(1)) || null;
@@ -93,6 +95,8 @@ function onlineFrame(o: Online, n: number) {
   const names: Record<number, string> = {};
   for (const m of v.roster) names[m.side] = cleanCallsign(m.callsign);
   const inSystem = o.phase.kind !== 'connecting';
+  if (!inSystem) results.reset();
+  const result = inSystem ? results.frame(Date.now(), scoreRows(v.game, { callsigns: names }), v.side) : null;
   const sys = o.system ? systemById(o.system) : undefined;
   drawWorld(v.game, app.screen, {
     callsigns: names,
@@ -100,6 +104,7 @@ function onlineFrame(o: Online, n: number) {
     label: inSystem && sys ? systemLabel(sys) : undefined,
     sky: inSystem ? skyFor(o.system) : null,
     scoreboard: tab && inSystem,
+    result,
   });
   if (inSystem && !tab) {
     // The match clock, top centre: the playfield changes when it runs out.
@@ -125,6 +130,7 @@ function frame(now: number) {
   if (mode === 'start') {
     // The system is found and kept behind the start screen.
     for (let i = 0; i < n; i++) online?.tick(NO_INPUT);
+    results.reset();
     start.step(n);
     start.draw(app.screen, skyFor('sol') ?? app.game.starPoints(), online?.matches ?? null);
     app.speaker.set(false, 0, 0);
@@ -132,6 +138,7 @@ function frame(now: number) {
     onlineFrame(online, n);
   } else {
     for (let i = 0; i < n; i++) app.tick();
+    results.reset();
     app.sound();
   }
   presenter.draw(app.screen);

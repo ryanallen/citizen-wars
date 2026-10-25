@@ -12,10 +12,9 @@ import type { Member } from './net/wire';
 import { SYSTEMS, rank, systemById } from './systems';
 import { gameFor } from './sim/snapshot';
 import { countMatches } from './net/tally';
-import { msLeft } from './net/matches';
 
-/** How long after a match ends to count again, for its hosts' notes to land. */
-const COUNT_AFTER_MS = 15000;
+/** How often to count again, so a game started anywhere shows within a minute. */
+const COUNT_EVERY_MS = 60000;
 
 export type Phase =
   | { kind: 'connecting'; attempt: number; system: string | null }
@@ -104,11 +103,11 @@ export class Online {
     if (!this.counting) { this.counting = true; void this.count(); }
   }
 
-  /** Count the matches now, then again shortly after each match ends. */
+  /** Count the matches now, then once a minute. */
   private async count(): Promise<void> {
     const n = await countMatches(this.notes);
     if (n !== null && n >= (this.matches ?? 0)) this.matches = n;
-    if (!this.stopped) this.countTimer = setTimeout(() => void this.count(), msLeft(Date.now()) + COUNT_AFTER_MS);
+    if (!this.stopped) this.countTimer = setTimeout(() => void this.count(), COUNT_EVERY_MS);
   }
 
   stop(): void {

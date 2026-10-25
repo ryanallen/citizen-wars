@@ -10,9 +10,10 @@ import { sin, cos } from './tables';
 import { Key, NO_INPUT, type Input } from './input';
 import { defensive, offensive, type RobotView } from './robot';
 import {
-  shipLeft, shipRight, torpedoLeft, torpedoRight, torpedoExplosion, planet as planetSheet, font,
+  shipLeft, shipRight, torpedoLeft, torpedoRight, torpedoExplosion, planet as planetSheet,
 } from '../design/bitmaps';
 import { BAR } from '../design/tokens';
+import { icons, ICON } from '../design/icons';
 
 const F = 65536;
 /** How many main-loop passes run each tick (ticket, Decisions). */
@@ -321,11 +322,11 @@ export class Game {
     this.redraw[i] = false;
   }
 
-  /** The S and E labels: bit 0 left S, 1 right S, 2 left E, 3 right E (`02AB:1BED`). */
+  /** The shield and energy icons (once the S and E labels): bit 0 left S, 1 right S, 2 left E, 3 right E (`02AB:1BED`). */
   toggleLabel(n: number): void {
     const x = n & 1 ? BAR.labelRightX : BAR.labelLeftX;
     const y = n < 2 ? BAR.shieldY : BAR.energyY;
-    this.screen.blit(font, n < 2 ? 0x53 : 0x45, x, y);
+    this.screen.blit(icons, n < 2 ? ICON.shield : ICON.energy, x, y);
     this.labels ^= 1 << n;
   }
 

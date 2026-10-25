@@ -5,9 +5,10 @@
 import type { Game } from './sim/game';
 import { Screen } from './screen';
 import {
-  shipLeft, shipRight, torpedoLeft, torpedoRight, torpedoExplosion, planet as planetSheet, font,
+  shipLeft, shipRight, torpedoLeft, torpedoRight, torpedoExplosion, planet as planetSheet,
 } from './design/bitmaps';
 import { BAR, SCREEN_W, SCREEN_H } from './design/tokens';
+import { icons, ICON } from './design/icons';
 
 const hi = (v: number) => Math.floor(v / 65536);
 
@@ -82,15 +83,15 @@ export function drawWorld(g: Game, s: Screen, o: SceneOptions = {}): void {
     s.bar(g.energy[8], BAR.energyY, false);
     for (let n = 0; n < 4; n++) {
       if (!(g.labels & (1 << n))) continue;
-      s.blit(font, n < 2 ? 0x53 : 0x45, n & 1 ? BAR.labelRightX : BAR.labelLeftX, n < 2 ? BAR.shieldY : BAR.energyY);
+      s.blit(icons, n < 2 ? ICON.shield : ICON.energy, n & 1 ? BAR.labelRightX : BAR.labelLeftX, n < 2 ? BAR.shieldY : BAR.energyY);
     }
   } else if (g.present[me]) {
     s.bar(g.shield[me], BAR.shieldY, true);
     s.bar(g.energy[g.ship(me)], BAR.energyY, true);
-    // The S blinks below 16 shield, every 32 ticks, as the original's does.
+    // The shield icon blinks below 16 shield, every 32 ticks, as the original's does.
     const blink = g.shield[me] < 16 && g.tick & 0x20;
-    if (!blink) s.blit(font, 0x53, BAR.labelLeftX, BAR.shieldY);
-    s.blit(font, 0x45, BAR.labelLeftX, BAR.energyY);
+    if (!blink) s.blit(icons, ICON.shield, BAR.labelLeftX, BAR.shieldY);
+    s.blit(icons, ICON.energy, BAR.labelLeftX, BAR.energyY);
   }
   // Call signs last, so the bars never cover one.
   for (let side = 0; side < g.ships; side++) {

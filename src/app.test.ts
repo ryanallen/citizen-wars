@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { Clock, TICK_HZ, MAX_CATCH_UP } from './clock';
-import { wholeScale } from './present';
+import { fillScale } from './present';
 import { KeyState } from './input';
 import { Key } from './sim/game';
 import { App } from './app';
@@ -27,11 +27,11 @@ describe('the loop', () => {
 });
 
 describe('the canvas', () => {
-  test('640x400 scaled in whole steps', () => {
-    expect(wholeScale(1280, 800)).toBe(2);
-    expect(wholeScale(1919, 1079)).toBe(2);
-    expect(wholeScale(1920, 1200)).toBe(3);
-    expect(wholeScale(300, 200)).toBe(1);
+  test('640x400 scaled to fill the window at its shape', () => {
+    expect(fillScale(1280, 800)).toBe(2);
+    expect(fillScale(1920, 1080)).toBe(2.7);
+    expect(fillScale(1600, 1200)).toBe(2.5);
+    expect(fillScale(320, 800)).toBe(0.5);
   });
 });
 

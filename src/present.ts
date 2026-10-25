@@ -1,11 +1,12 @@
 // Puts the 640x200 screen on the page (design-system.md, Screen): each pixel
-// 1 wide and 2 tall, scaled in whole steps, crisp, centred, white on black.
+// 1 wide and 2 tall, scaled to fill the window at its shape, drawn at the
+// display's own pixels with no smoothing, centred, white on black.
 
 import { Screen } from './screen';
 import { SCREEN_W, SCREEN_H, PIXEL_ASPECT } from './design/tokens';
 
-export function wholeScale(width: number, height: number): number {
-  return Math.max(1, Math.floor(Math.min(width / SCREEN_W, height / (SCREEN_H * PIXEL_ASPECT))));
+export function fillScale(width: number, height: number): number {
+  return Math.min(width / SCREEN_W, height / (SCREEN_H * PIXEL_ASPECT));
 }
 
 export class Presenter {
@@ -25,9 +26,14 @@ export class Presenter {
   }
 
   fit(): void {
-    const k = wholeScale(window.innerWidth, window.innerHeight);
-    this.canvas.width = SCREEN_W * k;
-    this.canvas.height = SCREEN_H * PIXEL_ASPECT * k;
+    const k = fillScale(window.innerWidth, window.innerHeight);
+    const w = Math.floor(SCREEN_W * k);
+    const h = Math.floor(SCREEN_H * PIXEL_ASPECT * k);
+    const dpr = window.devicePixelRatio || 1;
+    this.canvas.style.width = `${w}px`;
+    this.canvas.style.height = `${h}px`;
+    this.canvas.width = Math.round(w * dpr);
+    this.canvas.height = Math.round(h * dpr);
   }
 
   draw(screen: Screen): void {

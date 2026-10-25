@@ -8,6 +8,7 @@ import { Identity, Pool } from './nostr';
 import { Peer, type Channel } from './peer';
 import { CAP, NOTE_EVERY_MS, WORLDS_PER_SECOND, handshakeRelays, type RelayList } from './config';
 import { Signals, noteEvent, watchNotes, keeps, type Signal } from './lobby';
+import { matchAt, playfieldFor } from './matches';
 import { encodeInput, decodeInput, encodeWorld, decodeWorld, b64, unb64, type Control, type Member } from './wire';
 
 const TICK_HZ = 1193182 / 16390;
@@ -43,6 +44,8 @@ export interface HostOptions {
   refuseDirect?: (pubkey: string) => boolean;
   /** The system's stars, mass and radius in Suns. */
   stars?: { mass: number; radius: number }[];
+  /** The wall clock the matches run on; tests set it. */
+  now?: () => number;
 }
 
 export class Host {
@@ -65,17 +68,19 @@ export class Host {
   private admitting: Promise<void> = Promise.resolve();
   private worldsSent = 0;
   private stopped = false;
+  /** The match this host is running; a host taking over keeps the one it was handed. */
+  private match: number;
 
   constructor(private o: HostOptions) {
     this.side = o.side ?? 0;
     this.joined = o.joined ?? Date.now();
     this.game = o.game ?? new Game(o.seed ?? (Date.now() >>> 0), undefined, MAX_SHIPS);
+    this.match = matchAt(this.now());
     if (!o.game) {
-      // Online the star is the system: its sprite, box and pull always on (ticket, Decisions).
+      // Online the star is the system's, shown and pulling as this match's playfield deals (matches.ts).
       const g = this.game;
       g.rules = 'respawn';
-      g.options.planet = true;
-      g.options.gravity = true;
+      Object.assign(g.options, playfieldFor(o.system, this.match));
       g.present[this.side] = true;
       g.setStars(o.stars ?? [{ mass: 1, radius: 1 }]);
       g.startRound();
@@ -85,6 +90,18 @@ export class Host {
     this.notes = new Pool(o.relays.notes);
     this.signalPool = new Pool(handshakeRelays(o.relays, o.system));
     this.signals = new Signals(this.signalPool, o.me);
+  }
+
+  private now(): number { return (this.o.now ?? Date.now)(); }
+
+  /** A new match: the next playfield, scores back to nothing, every ship at its start. */
+  private newMatch(match: number): void {
+    const g = this.game;
+    this.match = match;
+    Object.assign(g.options, playfieldFor(this.o.system, match));
+    g.kills.fill(0);
+    g.deaths.fill(0);
+    g.startRound();
   }
 
   get pubkey(): string { return this.o.me.pubkey; }
@@ -236,6 +253,8 @@ export class Host {
     const g = this.game;
     g.inputs[this.side] = local;
     for (const m of this.members.values()) g.inputs[m.side] = m.input;
+    const match = matchAt(this.now());
+    if (match !== this.match) this.newMatch(match);
     if (g.step() === 'round-over') {
       g.startRound();
     }

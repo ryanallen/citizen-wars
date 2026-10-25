@@ -9,6 +9,7 @@ import { keysInput, NO_INPUT } from './sim/input';
 import { StartScreen } from './start';
 import { loadSystems, systemById, systemLabel } from './systems';
 import { loadSky, skyFrom, type Sky } from './sky';
+import { msLeft } from './net/matches';
 
 // Offline: the DOS menu and game. Online (the default): a system with others.
 const app = new App((Date.now() ^ (Math.random() * 0x7fffffff)) >>> 0);
@@ -100,6 +101,12 @@ function onlineFrame(o: Online, n: number) {
     sky: inSystem ? skyFor(o.system) : null,
     scoreboard: tab && inSystem,
   });
+  if (inSystem && !tab) {
+    // The match clock, top centre: the playfield changes when it runs out.
+    const left = Math.ceil(msLeft(Date.now()) / 1000);
+    const t = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+    app.screen.text(t, 320 - (t.length * 10) / 2 + 5, 8);
+  }
   const p = o.phase;
   if (p.kind === 'connecting') {
     const t = `CONNECTING... ATTEMPT ${Math.max(1, p.attempt)}`;

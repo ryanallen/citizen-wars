@@ -8,11 +8,13 @@ import { titleBlocks } from './design/title';
 import { Rng } from './sim/rng';
 import { FLY_STEPS, TICKS_PER_STEP, HOLD_TICKS } from './menu';
 
+// Each action has three keys: the left hand's, the keypad's, the right hand's.
+// The three action rows are padded to one length so their columns line up.
 export const CONTROLS = [
-  'Q PHASERS     W CLOAK       E PHOTON TORPEDO',
-  'A TURN LEFT   S IMPULSE     D TURN RIGHT',
-  'Z WEAPON ENERGY  X HYPERSPACE  C SHIELD ENERGY',
-  'OR THE KEYPAD, OR  I O P  K L ;  , . /',
+  'EVERY ACTION: LEFT KEY, KEYPAD KEY, OR RIGHT KEY',
+  'Q 7 I PHASERS     W 8 O CLOAK      E 9 P PHOTONS     ',
+  'A 4 K TURN LEFT   S 5 L IMPULSE    D 6 ; TURN RIGHT  ',
+  'Z 1 , TO ENERGY   X 2 . HYPERSPACE C 3 / TO SHIELD   ',
   'TAB SCORES  F8 SOUND  F9 CALL SIGN  ESC OFFLINE',
 ];
 export const PROMPT = 'PRESS ENTER TO START';

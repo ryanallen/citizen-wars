@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'vitest';
 import { Game, Key, PASSES_PER_TICK, EXPLOSION_FRAMES, EXPLOSION_TICKS_PER_FRAME, EXPLOSION_HOLD_TICKS } from './game';
 import { sin, cos } from './tables';
+import { keysInput } from './input';
+import { aim } from './robot';
 
 const F = 65536;
 
@@ -11,9 +13,9 @@ function round(seed = 7): Game {
 }
 
 function hold(g: Game, side: 0 | 1, keys: Key[], ticks: number): void {
-  g.keys[side] = keys.reduce((m, k) => m | (1 << k), 0);
+  g.inputs[side] = keysInput(keys.reduce((m, k) => m | (1 << k), 0));
   for (let n = 0; n < ticks; n++) g.step();
-  g.keys[side] = 0;
+  g.inputs[side] = keysInput(0);
 }
 
 function idle(g: Game, ticks: number): void {
@@ -82,10 +84,10 @@ describe('energy and shields', () => {
     const g = round();
     hold(g, 0, [Key.Cloak], 32 * 3);
     expect(g.energy[0]).toBe(124);
-    g.keys[0] = 1 << Key.Cloak;
+    g.inputs[0] = keysInput(1 << Key.Cloak);
     g.step();
     expect(g.drawn[0]).toBe(false);
-    g.keys[0] = 0;
+    g.inputs[0] = keysInput(0);
     g.step();
     expect(g.drawn[0]).toBe(true);
   });
@@ -388,11 +390,11 @@ describe('sound', () => {
 
 describe('robots', () => {
   test('aim points at the target by octant', () => {
-    expect(Game.aim(10, 0)).toBe(0);
-    expect(Game.aim(0, 10)).toBe(64);
-    expect(Game.aim(-10, 0)).toBe(128);
-    expect(Game.aim(0, -10)).toBe(192);
-    expect(Game.aim(10, 10)).toBe(32);
+    expect(aim(10, 0)).toBe(0);
+    expect(aim(0, 10)).toBe(64);
+    expect(aim(-10, 0)).toBe(128);
+    expect(aim(0, -10)).toBe(192);
+    expect(aim(10, 10)).toBe(32);
   });
 
   test('the defensive robot turns on a nearby torpedo and fires its phaser', () => {
@@ -411,6 +413,6 @@ describe('robots', () => {
     const g = round();
     g.options.robot[1] = true;
     g.step();
-    expect(g.angle[8]).toBe(Game.aim(g.x(0) - g.x(8), g.y(0) - g.y(8)));
+    expect(g.angle[8]).toBe(aim(g.x(0) - g.x(8), g.y(0) - g.y(8)));
   });
 });

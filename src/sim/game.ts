@@ -4,7 +4,9 @@
 
 import { Screen } from '../screen';
 import { Rng } from './rng';
-import { TAN, sin, cos } from './tables';
+import { sin, cos } from './tables';
+import { Key, NO_INPUT, type Input } from './input';
+import { defensive, offensive, type RobotView } from './robot';
 import {
   shipLeft, shipRight, torpedoLeft, torpedoRight, torpedoExplosion, planet as planetSheet, font,
 } from '../design/bitmaps';
@@ -19,8 +21,7 @@ export const EXPLOSION_FRAMES = 128;
 export const EXPLOSION_TICKS_PER_FRAME = 3;
 export const EXPLOSION_HOLD_TICKS = 60;
 
-/** Key indexes, in the order the code walks them (original.md, Keys). */
-export const enum Key { CW = 0, CCW = 1, Shield = 2, Weapon = 3, Phaser = 4, Photon = 5, Impulse = 6, Cloak = 7, Hyper = 8 }
+export { Key } from './input';
 
 const hi = (v: number) => Math.floor(v / F);
 const lo = (v: number) => v - hi(v) * F;
@@ -38,8 +39,8 @@ export class Game {
   paused = false;
   soundOn = false;
   wins: [number, number] = [0, 0];
-  /** Each player's held keys, bit n = Key n. */
-  keys: [number, number] = [0, 0];
+  /** Each player's Input this tick, from their keys or from the network. */
+  inputs: [Input, Input] = [NO_INPUT, NO_INPUT];
 
   tick = 0;
   planetFrame = 0;
@@ -319,13 +320,19 @@ export class Game {
   // ---- keys ------------------------------------------------------------------
 
   private input(s: number): void {
-    if (this.options.robot[s]) {
-      if (s === 0) this.robotDefensive(); else this.robotOffensive();
-      return;
-    }
+    this.applyInput(s, this.options.robot[s] ? this.robotInput(s) : this.inputs[s]);
+  }
+
+  /** One player's Input for a pass: the aim if any, then every key's press or release handler. */
+  applyInput(s: number, input: Input): void {
+    const i = this.ship(s);
     this.spin[s] = 0;
+    if (input.aim >= 0 && input.aim !== this.angle[i]) {
+      this.angle[i] = input.aim;
+      this.redraw[i] = true;
+    }
     for (let k = 8; k >= 0; k--) {
-      if (this.keys[s] & (1 << k)) this.press(s, k); else this.release(s, k);
+      if (input.keys & (1 << k)) this.press(s, k); else this.release(s, k);
     }
   }
 
@@ -689,67 +696,21 @@ export class Game {
     }
   }
 
-  // ---- robots ------------------------------------------------------------------
+  // ---- robots (src/sim/robot.ts) -----------------------------------------------
 
-  /** Aim from (dx, dy) by octant with the tangent table (`02AB:03E8`). */
-  static aim(dx: number, dy: number): number {
-    let flags = 0;
-    if (dx < 0) { dx = -dx; flags |= 1; }
-    if (dy < 0) { dy = -dy; flags ^= 2; }
-    let a: number;
-    const index = (v: number) => { for (let n = 31; n >= 0; n--) if (v >= TAN[n]) return n; return 0; };
-    if (dy === dx) a = 0x20;
-    else if (dy < dx) a = index(Math.floor((dy * F) / dx) >> 1);
-    else a = 0x40 - index(Math.floor((dx * F) / dy) >> 1);
-    let base = 0;
-    if (flags & 1) { base = 0x80; a = -a; }
-    if (flags & 2) a = -a;
-    return byte(base + a);
-  }
-
-  private balance(s: number): void {
+  /** What side s's robot sees: itself, and each enemy ship with its torpedoes. */
+  robotView(s: number): RobotView {
     const i = this.ship(s);
-    if (this.shield[s] === this.energy[i]) return;
-    if (this.shield[s] < this.energy[i]) this.press(s, Key.Shield); else this.press(s, Key.Weapon);
+    const body = (t: number) => ({ x: this.x(t), y: this.y(t), alive: this.alive(t) });
+    const e = this.ship(1 - s);
+    const torpedoes = [];
+    for (let t = e + 1; t < e + 8; t++) torpedoes.push(body(t));
+    return { x: this.x(i), y: this.y(i), energy: this.energy[i], shield: this.shield[s], enemies: [{ ship: body(e), torpedoes }] };
   }
 
-  /** The left robot (`02AB:038E`). */
-  robotDefensive(): void {
-    this.balance(0);
-    if (this.energy[0] === 0) { this.release(0, Key.Impulse); return; }
-    for (let t = 8; t < 16; t++) {
-      if (!this.alive(t)) continue;
-      if (Math.abs(this.y(0) - this.y(t)) >= 0x60 || Math.abs(this.x(0) - this.x(t)) >= 0x60) continue;
-      const a = Game.aim(this.x(t) - this.x(0), this.y(t) - this.y(0));
-      this.spin[0] = 0;
-      if (a !== this.angle[0]) { this.angle[0] = a; this.redraw[0] = true; }
-      this.press(0, Key.Phaser);
-      break;
-    }
-    if ((this.rng.next() & 255) < 0x10) this.press(0, Key.Impulse); else this.release(0, Key.Impulse);
-    if ((this.rng.next() & 0x3ff) === 0) this.press(0, Key.Hyper); else this.release(0, Key.Hyper);
-  }
-
-  /** The right robot (`02AB:05E5`). */
-  robotOffensive(): void {
-    const dx = this.x(0) - this.x(8);
-    const dy = this.y(0) - this.y(8);
-    const close = (Math.abs(dx) < 0x60 ? 1 : 0) + (Math.abs(dy) < 0x60 ? 1 : 0);
-    const a = Game.aim(dx, dy);
-    this.spin[1] = 0;
-    if (a !== this.angle[8]) { this.angle[8] = a; this.redraw[8] = true; }
-    this.balance(1);
-    if (this.energy[8] === 0) { this.release(1, Key.Impulse); this.release(1, Key.Photon); return; }
-    if ((this.rng.next() & 255) < 0x10) this.press(1, Key.Impulse); else this.release(1, Key.Impulse);
-    if ((this.rng.next() & 255) >= 8) {
-      this.release(1, Key.Photon);
-    } else if (close === 2) {
-      this.release(1, Key.Photon);
-      this.press(1, Key.Phaser);
-    } else {
-      this.press(1, Key.Photon);
-    }
-    if ((this.rng.next() & 0x3ff) === 0) this.press(1, Key.Hyper); else this.release(1, Key.Hyper);
+  /** The robot's Input for side s: the left one defends, the right one attacks. */
+  robotInput(s: number): Input {
+    return s === 0 ? defensive(this.robotView(0), this.rng) : offensive(this.robotView(1), this.rng);
   }
 }
 

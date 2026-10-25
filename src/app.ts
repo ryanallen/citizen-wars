@@ -2,6 +2,7 @@
 // to the menu (original.md, Keys and Ship death; design-system.md, Menu).
 
 import { Game } from './sim/game';
+import { keysInput } from './sim/input';
 import { Menu } from './menu';
 import { KeyState } from './input';
 import { Speaker } from './sound';
@@ -66,7 +67,8 @@ export class App {
       this.menu.step();
       return;
     }
-    this.game.keys = this.keys.masks();
+    const [l, r] = this.keys.masks();
+    this.game.inputs = [keysInput(l), keysInput(r)];
     if (this.game.step() === 'round-over') this.openMenu();
   }
 

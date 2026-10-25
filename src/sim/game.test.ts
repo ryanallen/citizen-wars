@@ -384,7 +384,17 @@ describe('sound', () => {
     expect([...seen].sort()).toEqual([1024, 2048]);
     g.soundOn = false;
     g.step();
-    expect(g.speaker.on).toBe(false);
+    expect(g.audible.on).toBe(false);
+  });
+
+  test('sound on or off never changes the game', () => {
+    const a = round(9);
+    const b = round(9);
+    a.soundOn = true;
+    a.options.robot = [true, true];
+    b.options.robot = [true, true];
+    for (let n = 0; n < 3000; n++) { a.step(); b.step(); }
+    expect([a.px, a.py, a.shield, a.energy]).toEqual([b.px, b.py, b.shield, b.energy]);
   });
 });
 

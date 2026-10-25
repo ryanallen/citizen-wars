@@ -75,6 +75,6 @@ export class App {
   sound(): void {
     const g = this.game;
     const clicks = g.soundOn ? g.explosionClickRate() : 0;
-    this.speaker.set(this.mode === 'play' && g.speaker.on, g.speaker.divisor, clicks);
+    this.speaker.set(this.mode === 'play' && g.audible.on, g.speaker.divisor, clicks);
   }
 }

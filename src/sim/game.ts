@@ -65,6 +65,10 @@ export class Game {
   shield: [number, number] = [0, 0];
   phaserTimer: [number, number] = [-1, -1];
   phaserLine: [number[], number[]] = [[], []];
+  /** Each phaser's start, as [angle, x, y, steps reached], and whether it is on screen. */
+  phaserFrom: [number[], number[]] = [[0, 0, 0, 0], [0, 0, 0, 0]];
+  phaserShown: [boolean, boolean] = [false, false];
+  starSeed = 0;
   labels = 0;
 
   // Particles: hyperspace clouds use 0-31 (left) and 32-63 (right); a ship explosion uses 0-89.
@@ -113,6 +117,7 @@ export class Game {
       this.energy[i] = 127; this.shield[s] = 31;
     }
     this.screen.clear();
+    this.starSeed = (this.rng.next() | (this.rng.next() << 16)) >>> 0;
     this.stars();
     this.drawShip(0, true); this.drawShip(1, true);
     this.labels = 0;
@@ -121,13 +126,19 @@ export class Game {
     this.explosion = null;
   }
 
-  /** 512 random pixels in [8, 632) x [8, 192), XOR (`02AB:2932`). */
+  /**
+   * 512 random pixels in [8, 632) x [8, 192), XOR (`02AB:2932`). They come from
+   * their own seed, so a world sent over the network carries its sky in 4 bytes.
+   */
   stars(): void {
-    for (let n = 0; n < 512; n++) {
-      const x = this.rng.x();
-      const y = this.rng.y();
-      this.screen.xorPixel(x, y);
-    }
+    for (const [x, y] of this.starPoints()) this.screen.xorPixel(x, y);
+  }
+
+  starPoints(): [number, number][] {
+    const r = new Rng(this.starSeed);
+    const out: [number, number][] = [];
+    for (let n = 0; n < 512; n++) out.push([r.x(), r.y()]);
+    return out;
   }
 
   // ---- drawing, where and when the original draws ----------------------------
@@ -282,6 +293,7 @@ export class Game {
       const i = this.ship(s);
       if (this.phaserTimer[s] === 0x14) {
         this.xorLine(this.phaserLine[s]);
+        this.phaserShown[s] = false;
         this.phaserTimer[s]--;
       }
       if (this.state[i] === 0) {
@@ -503,7 +515,15 @@ export class Game {
     this.soundCount = 0;
     this.soundFlags |= 2;
     this.phaserLine[s] = this.traceLine(this.angle[i], this.x(i), this.y(i), true);
+    this.phaserFrom[s] = [this.angle[i], this.x(i), this.y(i), 8 + this.phaserLine[s].length / 2];
+    this.phaserShown[s] = true;
     this.xorLine(this.phaserLine[s]);
+  }
+
+  /** A phaser's pixels again from where it started, without hitting anything (for a loaded world). */
+  phaserPixels(s: number): number[] {
+    const [a, x, y, last] = this.phaserFrom[s];
+    return this.traceLine(a, x, y, false, last);
   }
 
   private xorLine(pixels: number[]): void {
@@ -511,7 +531,7 @@ export class Game {
   }
 
   /** The phaser's stepped line, pixels from step 9 to 96, testing hits every 8th step. */
-  traceLine(angle: number, x: number, y: number, hits: boolean): number[] {
+  traceLine(angle: number, x: number, y: number, hits: boolean, last = 0x60): number[] {
     let ix = cos(angle);
     let iy = sin(angle);
     const left = ix < 0;
@@ -540,7 +560,7 @@ export class Game {
       if (steps < 9) continue;
       out.push(x, y);
       if (hits && (steps & 7) === 0 && this.phaserHit(x, y)) break;
-      if (steps >= 0x60) break;
+      if (steps >= last) break;
     }
     return out;
   }
@@ -670,9 +690,17 @@ export class Game {
 
   // ---- sound (`02AB:27C0`) -----------------------------------------------------
 
+  get audible(): Speaker {
+    return this.soundOn ? this.speaker : { on: false, divisor: 0 };
+  }
+
+  /**
+   * The speaker, worked out whether sound is on or not and without the game's
+   * random numbers, so two players with sound set differently stay in step;
+   * `audible` is what to play (F8 toggles `soundOn`).
+   */
   private sound(): void {
     const off = () => { this.soundFlags = 0; this.soundCount = 0; this.speaker = { on: false, divisor: 0 }; };
-    if (!this.soundOn) return off();
     const f = this.soundFlags;
     if (f & 0x80) return;
     if (!f) return off();
@@ -692,7 +720,7 @@ export class Game {
     } else if (f & 1) {
       if ((this.tick & 0x1f) === 0) this.speaker = { on: true, divisor: this.tick & 0x20 ? 0x800 : 0x400 };
     } else if (f & 8) {
-      this.speaker = { on: true, divisor: this.rng.next() | 0x2000 };
+      this.speaker = { on: true, divisor: (Math.random() * 0x10000) | 0x2000 };
     }
   }
 

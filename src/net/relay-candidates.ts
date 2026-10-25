@@ -1,0 +1,23 @@
+/** Public relays to try when building relays.json (npm run test:live). */
+export const CANDIDATES = [
+  'wss://relay.damus.io',
+  'wss://nos.lol',
+  'wss://relay.primal.net',
+  'wss://relay.nostr.band',
+  'wss://relay.snort.social',
+  'wss://offchain.pub',
+  'wss://nostr.mom',
+  'wss://relay.nostr.bg',
+  'wss://nostr.oxtr.dev',
+  'wss://relay.nostr.net',
+  'wss://nostr.bitcoiner.social',
+  'wss://relay.mostr.pub',
+  'wss://nostr-pub.wellorder.net',
+  'wss://relay.nostrplebs.com',
+  'wss://nostr.fmt.wiz.biz',
+  'wss://relay.current.fyi',
+  'wss://purplepag.es',
+  'wss://nostr.land',
+  'wss://relay.0xchat.com',
+  'wss://nostr.wine',
+];

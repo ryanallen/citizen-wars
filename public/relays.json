@@ -1,0 +1,20 @@
+{
+  "checked": "2026-10-25: each answered, stored a note and passed an ephemeral message (npm run test:live)",
+  "notes": [
+    "wss://relay.damus.io",
+    "wss://nos.lol",
+    "wss://relay.primal.net",
+    "wss://offchain.pub"
+  ],
+  "all": [
+    "wss://relay.damus.io",
+    "wss://nos.lol",
+    "wss://relay.primal.net",
+    "wss://offchain.pub",
+    "wss://nostr.mom",
+    "wss://nostr.oxtr.dev",
+    "wss://relay.nostr.net",
+    "wss://nostr.bitcoiner.social",
+    "wss://nostr-pub.wellorder.net"
+  ]
+}

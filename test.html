@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Citizen Wars test pilots</title>
+    <style>
+      body { background: #000; color: #fff; font: 13px monospace; margin: 16px; }
+      table { border-collapse: collapse; }
+      td, th { border: 1px solid #555; padding: 2px 8px; text-align: left; }
+    </style>
+  </head>
+  <body>
+    <p>Test pilots: <code>?pilots=N&amp;system=sol</code>. Each pilot is a robot with its own key and its own connections through the real relays.</p>
+    <table id="pilots"><thead><tr><th>#</th><th>call sign</th><th>role</th><th>system</th><th>side</th><th>players</th><th>rtt ms</th><th>last</th></tr></thead><tbody></tbody></table>
+    <script type="module" src="/src/pilots.ts"></script>
+  </body>
+</html>

@@ -1,8 +1,8 @@
 // Matches played, site-wide (ticket, Decisions: how are matches counted): the
-// host of a match that two or more people flew in writes one stored note for it
-// when it ends, named by its system and match number, and every page counts the
-// different names. A host taking over writes the same name, so a match is
-// counted once however many hosts it had.
+// host of a match a person flew in (pressed a key, against a robot or another
+// person) writes one stored note for it when it ends, named by its system and
+// match number, and every page counts the different names. A host taking over
+// writes the same name, so a match is counted once however many hosts it had.
 
 import { Identity, Pool, type NostrEvent } from './nostr';
 import { KIND_NOTE } from './config';

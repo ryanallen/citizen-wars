@@ -3,7 +3,7 @@ import { Identity, type Filter, type NostrEvent, type Pool } from './nostr';
 import { MATCH_TAG, countMatches, matchEvent } from './tally';
 import { Host } from './session';
 import { MATCH_MS } from './matches';
-import { NO_INPUT } from '../sim/input';
+import { NO_INPUT, keysInput } from '../sim/input';
 
 /** A pool holding these events, answering with at most `cap` a query, newest first, as relays do. */
 function fakePool(events: NostrEvent[], cap: number, open = 1) {
@@ -37,20 +37,25 @@ test('no relay answering counts nothing, not zero', async () => {
   expect(await countMatches(fakePool([], 7), 50)).toBe(0);
 });
 
-test('a host writes a match only when two or more people flew in it', () => {
+test('a host writes a match when a person flew in it, against a robot or another person', () => {
   let clock = 10 * MATCH_MS;
   const host = new Host({ system: 'sol', me: Identity.random(), relays: { notes: [], all: ['x'] }, callsign: 'T-1', now: () => clock });
   const written: [number, number][] = [];
   (host as unknown as { publishMatch: (m: number, p: number) => void }).publishMatch = (m, p) => { written.push([m, p]); };
+  // Match 10: the host sits on the start screen, pressing nothing. Not played.
   host.tick(NO_INPUT);
   clock += MATCH_MS;
   host.tick(NO_INPUT);
   expect(written).toEqual([]);
-  // Someone joins for a moment in match 11 and leaves before it ends: still a real match.
-  host.members.set('k', { pubkey: 'k', callsign: 'T-2', side: 1, joined: 0, input: NO_INPUT, ack: 0, peer: null, via: null });
-  host.tick(NO_INPUT);
-  host.members.delete('k');
+  // Match 11: the host alone flies against the robot stand-in.
+  host.tick(keysInput(1));
   clock += MATCH_MS;
   host.tick(NO_INPUT);
-  expect(written).toEqual([[11, 2]]);
+  expect(written).toEqual([[11, 1]]);
+  // Match 12: someone joins and flies; the host stays idle.
+  host.members.set('k', { pubkey: 'k', callsign: 'T-2', side: 1, joined: 0, input: keysInput(1), ack: 0, peer: null, via: null });
+  host.tick(NO_INPUT);
+  clock += MATCH_MS;
+  host.tick(NO_INPUT);
+  expect(written).toEqual([[11, 1], [12, 1]]);
 });

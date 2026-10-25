@@ -43,7 +43,7 @@ export class Online {
   /** A local game against a robot, flown while connecting. */
   readonly practice = new Game((Date.now() >>> 0) ^ 0x5eed);
   log: string[] = [];
-  /** Matches two or more people have played, site-wide; null until the relays answer. */
+  /** Matches a person has played, site-wide; null until the relays answer. */
   matches: number | null = null;
   private counting = false;
   private countTimer: ReturnType<typeof setTimeout> | null = null;

@@ -18,8 +18,8 @@ export const CONTROLS = [
   'TAB SCORES  F8 SOUND  F9 CALL SIGN  ESC OFFLINE',
 ];
 export const PROMPT = 'PRESS ENTER TO START';
-/** The site-wide count of matches two or more people played (net/tally.ts). */
-export const matchesPlayed = (n: number): string => `${n} ${n === 1 ? 'MATCH' : 'MATCHES'} PLAYED`;
+/** The site-wide count of matches a person played (net/tally.ts). */
+export const matchesPlayed = (n: number): string => `${n} ${n === 1 ? 'GAME' : 'GAMES'}`;
 
 const F = 65536;
 const centred = (s: Screen, text: string, y: number) => s.text(text, 320 - (text.length * 10) / 2 + 5, y);

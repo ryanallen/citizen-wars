@@ -71,8 +71,11 @@ export class Host {
   private stopped = false;
   /** The match this host is running; a host taking over keeps the one it was handed. */
   private match: number;
-  /** The most people in the system at once this match; two or more makes it a real match (tally.ts). */
-  private peak = 1;
+  /**
+   * The sides whose person pressed a key this match. One is a real match
+   * (tally.ts): a person alone flies against the robot stand-in.
+   */
+  private flew = new Set<number>();
 
   constructor(private o: HostOptions) {
     this.side = o.side ?? 0;
@@ -100,8 +103,8 @@ export class Host {
   /** A new match: the next playfield, scores back to nothing, every ship at its start. */
   private newMatch(match: number): void {
     const g = this.game;
-    if (this.peak >= 2) void this.publishMatch(this.match, this.peak);
-    this.peak = 1 + this.members.size;
+    if (this.flew.size) void this.publishMatch(this.match, this.flew.size);
+    this.flew.clear();
     this.match = match;
     Object.assign(g.options, playfieldFor(this.o.system, match));
     g.kills.fill(0);
@@ -265,7 +268,8 @@ export class Host {
     const g = this.game;
     g.inputs[this.side] = local;
     for (const m of this.members.values()) g.inputs[m.side] = m.input;
-    this.peak = Math.max(this.peak, 1 + this.members.size);
+    if (local.keys) this.flew.add(this.side);
+    for (const m of this.members.values()) if (m.input.keys) this.flew.add(m.side);
     const match = matchAt(this.now());
     if (match !== this.match) this.newMatch(match);
     if (g.step() === 'round-over') {

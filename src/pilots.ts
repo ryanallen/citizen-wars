@@ -4,9 +4,11 @@
 
 import { Online } from './online';
 import { loadRelays } from './net/config';
+import { loadSystems } from './systems';
 import { defensive, offensive } from './sim/robot';
 import type { Game } from './sim/game';
-import type { Input } from './sim/input';
+import { NO_INPUT, type Input } from './sim/input';
+import { Rng } from './sim/rng';
 import { TICK_MS } from './clock';
 
 const params = new URLSearchParams(location.search);
@@ -14,20 +16,21 @@ const count = Math.max(1, Math.min(64, Number(params.get('pilots') ?? 1)));
 const system = params.get('system');
 const stagger = Number(params.get('stagger') ?? 400);
 
-/** What this pilot's robot does, seen from its own side. */
+/**
+ * What this pilot's robot does, seen from its own side, with its own random
+ * numbers so it never disturbs its copy of the world.
+ */
+const dice = new Rng((Date.now() >>> 0) ^ 0x9e3779b9);
 function robot(g: Game, side: number): Input {
-  const i = side * 8;
-  const e = (1 - side) * 8;
-  const body = (t: number) => ({ x: g.x(t), y: g.y(t), alive: g.alive(t) });
-  const torpedoes = Array.from({ length: 7 }, (_, k) => body(e + 1 + k));
-  const view = { x: g.x(i), y: g.y(i), energy: g.energy[i], shield: g.shield[side], enemies: [{ ship: body(e), torpedoes }] };
-  return side === 0 ? defensive(view, g.rng) : offensive(view, g.rng);
+  if (side < 0 || side >= g.ships || !g.present[side]) return NO_INPUT;
+  const view = g.robotView(side);
+  return side % 2 === 0 ? defensive(view, dice) : offensive(view, dice);
 }
 
 const pilots: Online[] = [];
 const rows = document.querySelector('#pilots tbody')!;
 
-loadRelays().then(async (relays) => {
+Promise.all([loadRelays(), loadSystems()]).then(async ([relays]) => {
   for (let n = 0; n < count; n++) {
     const p = new Online({ relays, callsign: `PILOT-${n + 1}`, wanted: system });
     pilots.push(p);

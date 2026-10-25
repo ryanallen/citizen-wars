@@ -6,6 +6,8 @@ import { loadRelays } from './net/config';
 import { loadCallsign, saveCallsign } from './callsign';
 import { drawWorld } from './scene';
 import { keysInput } from './sim/input';
+import { loadSystems, systemById, systemLabel } from './systems';
+import { loadSky, skyFrom, type Sky } from './sky';
 
 // Offline: the DOS menu and game. Online (the default): a system with others.
 const app = new App((Date.now() ^ (Math.random() * 0x7fffffff)) >>> 0);
@@ -17,7 +19,18 @@ let soundOn = false;
 
 const wanted = () => decodeURIComponent(location.hash.slice(1)) || null;
 
-loadRelays().then((relays) => {
+let sky: Sky | null = null;
+let tab = false;
+const skies = new Map<string, [number, number][]>();
+function skyFor(system: string | null): [number, number][] | null {
+  if (!sky || !system) return null;
+  const s = systemById(system);
+  if (!s?.xyz) return null;
+  if (!skies.has(system)) skies.set(system, skyFrom(sky, s.xyz));
+  return skies.get(system)!;
+}
+
+Promise.all([loadRelays(), loadSystems().catch(() => null), loadSky().then((s) => { sky = s; }).catch(() => null)]).then(([relays]) => {
   online = new Online({
     relays,
     callsign: loadCallsign(),
@@ -38,6 +51,7 @@ window.addEventListener('keydown', (e) => {
     return;
   }
   if (e.code === 'F8') { soundOn = !soundOn; app.game.soundOn = soundOn; e.preventDefault(); return; }
+  if (e.code === 'Tab') { tab = true; e.preventDefault(); return; }
   if (e.code === 'F9') {
     e.preventDefault();
     const c = saveCallsign(prompt('Your call sign', online?.callsign ?? '') ?? '');
@@ -53,9 +67,10 @@ window.addEventListener('keydown', (e) => {
   if (app.keys.down(e.code)) e.preventDefault();
 });
 window.addEventListener('keyup', (e) => {
+  if (e.code === 'Tab') tab = false;
   if (app.keys.up(e.code)) e.preventDefault();
 });
-window.addEventListener('blur', () => app.keys.clear());
+window.addEventListener('blur', () => { app.keys.clear(); tab = false; });
 window.addEventListener('pointerdown', () => app.speaker.unlock());
 
 function onlineFrame(o: Online, n: number) {
@@ -66,7 +81,15 @@ function onlineFrame(o: Online, n: number) {
   const v = o.view();
   const names: Record<number, string> = {};
   for (const m of v.roster) names[m.side] = m.callsign;
-  drawWorld(v.game, app.screen, names);
+  const inSystem = o.phase.kind !== 'connecting';
+  const sys = o.system ? systemById(o.system) : undefined;
+  drawWorld(v.game, app.screen, {
+    callsigns: names,
+    me: inSystem ? v.side : null,
+    label: inSystem && sys ? systemLabel(sys) : undefined,
+    sky: inSystem ? skyFor(o.system) : null,
+    scoreboard: tab && inSystem,
+  });
   const p = o.phase;
   if (p.kind === 'connecting') {
     const t = `CONNECTING... ATTEMPT ${Math.max(1, p.attempt)}`;

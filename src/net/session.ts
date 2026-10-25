@@ -1,9 +1,9 @@
 // The host and the client (ticket, Phase 3; Decisions: how a client draws a
 // world the host corrects).
 
-import { Game } from '../sim/game';
+import { Game, fieldSize, MAX_SHIPS } from '../sim/game';
 import { NO_INPUT, type Input } from '../sim/input';
-import { saveWorld, loadWorld } from '../sim/snapshot';
+import { saveWorld, loadWorld, worldShips } from '../sim/snapshot';
 import { Identity, Pool } from './nostr';
 import { Peer, type Channel } from './peer';
 import { CAP, NOTE_EVERY_MS, WORLDS_PER_SECOND, handshakeRelays, type RelayList } from './config';
@@ -41,6 +41,8 @@ export interface HostOptions {
   seed?: number;
   /** Refuse direct offers (tests of passing traffic through another player). */
   refuseDirect?: (pubkey: string) => boolean;
+  /** The system's stars, mass and radius in Suns. */
+  stars?: { mass: number; radius: number }[];
 }
 
 export class Host {
@@ -49,6 +51,9 @@ export class Host {
   readonly members = new Map<string, Remote>();
   readonly joined: number;
   hostTick = 0;
+  /** Bytes sent to members and worlds sent, for the load tests (Phase 4). */
+  sentBytes = 0;
+  worldsOut = 0;
   onRoster: (roster: Member[]) => void = () => {};
   /** Another host keeps this system: this one should join it instead. */
   onYield: (winner: string) => void = () => {};
@@ -64,11 +69,19 @@ export class Host {
   constructor(private o: HostOptions) {
     this.side = o.side ?? 0;
     this.joined = o.joined ?? Date.now();
-    this.game = o.game ?? new Game(o.seed ?? (Date.now() >>> 0));
+    this.game = o.game ?? new Game(o.seed ?? (Date.now() >>> 0), undefined, MAX_SHIPS);
     if (!o.game) {
-      this.game.options = { planet: true, gravity: false, robot: [false, false] };
-      this.game.startRound();
+      // Online the star is the system: its sprite, box and pull always on (ticket, Decisions).
+      const g = this.game;
+      g.rules = 'respawn';
+      g.options.planet = true;
+      g.options.gravity = true;
+      g.present[this.side] = true;
+      g.setStars(o.stars ?? [{ mass: 1, radius: 1 }]);
+      g.startRound();
     }
+    this.game.listener = this.side;
+    this.presence();
     this.notes = new Pool(o.relays.notes);
     this.signalPool = new Pool(handshakeRelays(o.relays, o.system));
     this.signals = new Signals(this.signalPool, o.me);
@@ -153,7 +166,28 @@ export class Host {
     this.rosterChanged();
   }
 
+  /**
+   * Ships in play: this player's and each member's, and a robot stand-in only
+   * when this player is alone (Phase 2); the field sized for the ships present.
+   */
+  private presence(): void {
+    const g = this.game;
+    const occupied = new Set([this.side, ...[...this.members.values()].map((m) => m.side)]);
+    let robot = -1;
+    if (occupied.size === 1) for (let s = 0; s < g.ships && robot < 0; s++) if (!occupied.has(s)) robot = s;
+    const want = (s: number) => occupied.has(s) || s === robot;
+    const count = Array.from({ length: g.ships }, (_, s) => s).filter(want).length;
+    const { w, h } = fieldSize(Math.max(2, count));
+    g.setField(w, h);
+    for (let s = 0; s < g.ships; s++) {
+      g.options.robot[s] = s === robot;
+      if (want(s) && !g.present[s]) g.arrive(s);
+      else if (!want(s) && g.present[s]) g.leave(s);
+    }
+  }
+
   private rosterChanged(): void {
+    this.presence();
     const roster = this.roster();
     for (const m of this.members.values()) this.sendTo(m.pubkey, JSON.stringify({ t: 'roster', roster } satisfies Control));
     this.onRoster(roster);
@@ -164,6 +198,7 @@ export class Host {
   private sendTo(pubkey: string, data: Uint8Array | string, ch: Channel = typeof data === 'string' ? 'reliable' : 'fast'): void {
     const m = this.members.get(pubkey);
     if (!m) return;
+    this.sentBytes += typeof data === 'string' ? data.length : data.length;
     if (m.peer) { m.peer.send(ch, data); return; }
     const via = m.via ? this.members.get(m.via) : undefined;
     if (!via?.peer) return;
@@ -196,12 +231,10 @@ export class Host {
     }
   }
 
-  /** One tick: this player's input, the members' latest, robots on empty sides. */
+  /** One tick: this player's input and each member's latest. */
   tick(local: Input): void {
     const g = this.game;
     g.inputs[this.side] = local;
-    const occupied = new Set([this.side, ...[...this.members.values()].map((m) => m.side)]);
-    for (let s = 0; s < 2; s++) g.options.robot[s] = !occupied.has(s);
     for (const m of this.members.values()) g.inputs[m.side] = m.input;
     if (g.step() === 'round-over') {
       g.startRound();
@@ -210,6 +243,7 @@ export class Host {
     const due = Math.floor((this.hostTick * WORLDS_PER_SECOND) / TICK_HZ);
     if (due > this.worldsSent) {
       this.worldsSent = due;
+      if (this.members.size) this.worldsOut++;
       this.broadcast();
     }
   }
@@ -217,7 +251,7 @@ export class Host {
   private broadcast(): void {
     if (!this.members.size) return;
     const world = saveWorld(this.game);
-    const inputs: [Input, Input] = [this.game.inputs[0], this.game.inputs[1]];
+    const inputs = this.game.inputs;
     for (const m of this.members.values()) this.sendTo(m.pubkey, encodeWorld(this.hostTick, m.ack, inputs, world), 'fast');
   }
 
@@ -259,11 +293,13 @@ export interface ClientOptions {
 export type Outcome = 'joined' | 'full' | 'failed';
 
 export class Client {
-  readonly game = new Game(1);
+  /** This player's copy of the host's game, made to the host's size by the first world. */
+  game = new Game(1);
   side = -1;
   roster: Member[] = [];
   rttMs = 0;
   lastWorldAt = 0;
+  worldsIn = 0;
   /** The host left: 'handover' with the world when it passed the system on, else 'lost'. */
   onEnd: (why: 'lost' | 'handover', handover?: { to: string; world: Uint8Array }) => void = () => {};
   private peer: Peer | null = null;
@@ -271,7 +307,7 @@ export class Client {
   private signals: Signals;
   seq = 0;
   private history = new Map<number, Input>();
-  private others: [Input, Input] = [NO_INPUT, NO_INPUT];
+  private others: Input[] = [];
   private stops: (() => void)[] = [];
   private pingTimer: ReturnType<typeof setInterval> | null = null;
   private ended = false;
@@ -354,9 +390,12 @@ export class Client {
   }
 
   /** Load the host's world, then re-run this player's inputs the host has not used yet. */
-  private world(ack: number, inputs: [Input, Input], bytes: Uint8Array): void {
+  private world(ack: number, inputs: Input[], bytes: Uint8Array): void {
     this.lastWorldAt = performance.now();
+    this.worldsIn++;
+    if (worldShips(bytes) !== this.game.ships) this.game = new Game(1, undefined, worldShips(bytes));
     loadWorld(this.game, bytes);
+    this.game.listener = this.side;
     this.others = inputs;
     for (const k of [...this.history.keys()]) if (k <= ack) this.history.delete(k);
     for (let n = ack + 1; n <= this.seq; n++) this.step(this.history.get(n) ?? NO_INPUT);
@@ -364,8 +403,8 @@ export class Client {
 
   private step(local: Input): void {
     const g = this.game;
-    for (let s = 0; s < 2; s++) g.inputs[s] = s === this.side ? local : this.others[s];
-    g.options.robot[this.side] = false;
+    for (let s = 0; s < g.ships; s++) g.inputs[s] = s === this.side ? local : (this.others[s] ?? NO_INPUT);
+    if (this.side < g.ships) g.options.robot[this.side] = false;
     if (g.step() === 'round-over') g.startRound();
   }
 

@@ -10,8 +10,8 @@ export const NOTE_LIFE_S = 10;
 export const NOTE_EVERY_MS = 5000;
 /** Worlds sent to clients a second. */
 export const WORLDS_PER_SECOND = 30;
-/** Players a system holds; Phase 4 sets it by play. */
-export const CAP = 2;
+/** Players a system holds, set by the load tests (ticket, Decisions). */
+export const CAP = 12;
 /** Free public STUN servers, which tell each browser its own public address. */
 export const STUN = ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478', 'stun:global.stun.twilio.com:3478'];
 /** Retry waits: 1, 2, 4, 8, then every 15 seconds, never giving up. */

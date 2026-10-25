@@ -18,7 +18,7 @@ export class App {
 
   constructor(seed: number) {
     this.game = new Game(seed, this.screen);
-    this.menu = new Menu(this.screen, this.game.rng, () => this.game.wins);
+    this.menu = new Menu(this.screen, this.game.rng, () => [this.game.wins[0], this.game.wins[1]]);
     this.openMenu();
   }
 

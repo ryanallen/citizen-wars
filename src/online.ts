@@ -9,7 +9,8 @@ import { CAP, retryWait, type RelayList } from './net/config';
 import { readNotes, type Note } from './net/lobby';
 import { Host, Client, type Outcome } from './net/session';
 import type { Member } from './net/wire';
-import { SYSTEMS, rank } from './systems';
+import { SYSTEMS, rank, systemById } from './systems';
+import { gameFor } from './sim/snapshot';
 
 export type Phase =
   | { kind: 'connecting'; attempt: number; system: string | null }
@@ -211,13 +212,8 @@ export class Online {
       const system = client.system;
       const roster = client.roster.filter((m) => m.pubkey !== client.host);
       if (why === 'handover' && handover?.to === this.me.pubkey) {
-        const g = new Game(1);
-        g.options.robot = [false, false];
-        import('./sim/snapshot').then(({ loadWorld }) => {
-          loadWorld(g, handover.world);
-          this.note(`${system} handed to me`);
-          void this.hostSystem(system, g, client.side);
-        });
+        this.note(`${system} handed to me`);
+        void this.hostSystem(system, gameFor(handover.world), client.side);
         return;
       }
       this.phase = { kind: 'connecting', attempt: 0, system };
@@ -253,7 +249,8 @@ export class Online {
   }
 
   private async hostSystem(system: string, game?: Game, side = 0): Promise<boolean> {
-    const host = new Host({ system, me: this.me, relays: this.o.relays, callsign: this.o.callsign, game, side, refuseDirect: this.o.refuseDirect });
+    const stars = systemById(system)?.stars;
+    const host = new Host({ system, me: this.me, relays: this.o.relays, callsign: this.o.callsign, game, side, stars, refuseDirect: this.o.refuseDirect });
     try {
       await host.start();
     } catch {

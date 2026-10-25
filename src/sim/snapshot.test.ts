@@ -7,6 +7,8 @@ import { Screen } from '../screen';
 
 function busy(seed: number): Game {
   const g = new Game(seed);
+  // Worlds are sent only online, under the online rules.
+  g.rules = 'respawn';
   g.options = { planet: true, gravity: true, robot: [true, true] };
   g.startRound();
   for (let n = 0; n < 400; n++) g.step();
@@ -55,7 +57,7 @@ test('drawing a world from state shows the ships and bars', () => {
   g.startRound();
   g.step();
   const s = new Screen();
-  drawWorld(g, s, { 0: 'RED-7' });
+  drawWorld(g, s, { callsigns: { 0: 'RED-7' } });
   let ship = 0;
   for (let y = 38; y < 54; y++) for (let x = 152; x < 168; x++) ship += s.px[y * 640 + x];
   expect(ship).toBeGreaterThan(10);

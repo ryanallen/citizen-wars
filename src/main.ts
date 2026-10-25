@@ -3,7 +3,7 @@ import { Clock } from './clock';
 import { Presenter } from './present';
 import { Online } from './online';
 import { loadRelays } from './net/config';
-import { loadCallsign, saveCallsign } from './callsign';
+import { cleanCallsign, loadCallsign, saveCallsign } from './callsign';
 import { drawWorld } from './scene';
 import { keysInput, NO_INPUT } from './sim/input';
 import { StartScreen } from './start';
@@ -90,7 +90,7 @@ function onlineFrame(o: Online, n: number) {
   }
   const v = o.view();
   const names: Record<number, string> = {};
-  for (const m of v.roster) names[m.side] = m.callsign;
+  for (const m of v.roster) names[m.side] = cleanCallsign(m.callsign);
   const inSystem = o.phase.kind !== 'connecting';
   const sys = o.system ? systemById(o.system) : undefined;
   drawWorld(v.game, app.screen, {

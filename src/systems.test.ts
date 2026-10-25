@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { Game, fieldSize, EXPLOSION_TICKS } from './sim/game';
 import { skyFrom } from './sky';
 import { saveWorld, gameFor } from './sim/snapshot';
-import { drawWorld } from './scene';
+import { drawWorld, scoreRows, BOT_NAME } from './scene';
 import { Screen } from './screen';
 import { keeps } from './net/lobby';
 import type { StarSystem } from './systems';
@@ -149,6 +149,23 @@ describe('many ships', () => {
     let lit = 0;
     for (const p of s.px) lit += p;
     expect(lit).toBeGreaterThan(200);
+  });
+
+  test('a robot is named BOT, a person by call sign, most kills first', () => {
+    const g = system(3);
+    g.options.robot = [false, true, false];
+    g.kills[0] = 1; g.kills[1] = 4; g.kills[2] = 2;
+    const rows = scoreRows(g, { callsigns: { 0: 'RED-7', 2: 'JADE-3' } });
+    expect(rows.map((r) => [r.name, r.kills])).toEqual([[BOT_NAME, 4], ['JADE-3', 2], ['RED-7', 1]]);
+  });
+
+  test('online, the scores are drawn top right without Tab', () => {
+    const g = system(2);
+    const s = new Screen();
+    drawWorld(g, s, { me: 0, sky: [] });
+    let lit = 0;
+    for (let y = 4; y < 20; y++) for (let x = 500; x < 640; x++) lit += s.px[y * 640 + x];
+    expect(lit).toBeGreaterThan(20);
   });
 });
 

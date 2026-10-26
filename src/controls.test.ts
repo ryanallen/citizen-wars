@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { Key, Game } from './sim/game';
 import { Screen } from './screen';
-import { ACTIONS, DEFAULT_BINDINGS, bind, unbind, keymap, keyName, keysPage, defaultControls, reserved } from './controls';
+import { ACTIONS, DEFAULT_BINDINGS, bind, unbind, keymap, keyName, keysPage, defaultControls, reserved, loadControls } from './controls';
 import { KEYS_PAGE } from './design/pages';
 import { KeyState } from './input';
 import { Pointer } from './pointer';
@@ -13,6 +13,19 @@ describe('bindings', () => {
     expect(b[Key.Cloak]).toEqual(['ShiftLeft', 'KeyW']);
     expect(b[Key.Impulse]).toEqual(['', '']);
     expect(keymap(b).KeyW).toEqual([0, Key.Cloak]);
+  });
+
+  test('keys saved before strafing: A and D come off the turns onto the strafes', () => {
+    const old = structuredClone(DEFAULT_BINDINGS) as Record<number, [string, string]>;
+    old[Key.CCW] = ['KeyA', '']; old[Key.CW] = ['KeyD', 'KeyX'];
+    delete old[Key.StrafeLeft]; delete old[Key.StrafeRight];
+    const store = { 'citizenwars.controls': JSON.stringify({ bindings: old, mouseAim: true }) } as Record<string, string>;
+    globalThis.localStorage = { getItem: (k: string) => store[k] ?? null } as Storage;
+    const b = loadControls().bindings;
+    expect(b[Key.StrafeLeft]).toEqual(['KeyA', '']);
+    expect(b[Key.StrafeRight]).toEqual(['KeyD', '']);
+    expect(b[Key.CCW]).toEqual(['', '']);
+    expect(b[Key.CW]).toEqual(['KeyX', '']);
   });
 
   test('clearing the first key moves the second up', () => {

@@ -410,16 +410,23 @@ export class Game {
     const i = this.ship(s);
     if (this.state[i] === 0) return;
     this.angle[i] = byte(this.angle[i] + this.spin[s]);
-    if (this.ctl[s] & 1) {
+    // Impulse is ctl bit 1; the strafes, bits 4 and 8, push a quarter turn to either side at the same cost.
+    if (this.ctl[s] & 13) {
       if ((this.tick & 0x1f) === 0) {
         this.energy[i] = sbyte(this.energy[i] - 1);
         if (this.energy[i] === 0) return;
       }
-      // Impulse: (cos, sin) / 8, the whole part kept only below 8 a tick (`02AB:23B8`).
-      this.vx[i] = this.thrust(this.vx[i], Math.floor(cos(this.angle[i]) / 8));
-      this.vy[i] = this.thrust(this.vy[i], Math.floor(sin(this.angle[i]) / 8));
+      if (this.ctl[s] & 1) this.push(i, this.angle[i]);
+      if (this.ctl[s] & 4) this.push(i, byte(this.angle[i] - 64));
+      if (this.ctl[s] & 8) this.push(i, byte(this.angle[i] + 64));
     }
     if ((this.ctl[s] & 2) && (this.tick & 0x1f) === 0) this.energy[i] = sbyte(this.energy[i] - 1);
+  }
+
+  /** Impulse: (cos, sin) / 8 toward angle `a`, the whole part kept only below 8 a tick (`02AB:23B8`). */
+  private push(i: number, a: number): void {
+    this.vx[i] = this.thrust(this.vx[i], Math.floor(cos(a) / 8));
+    this.vy[i] = this.thrust(this.vy[i], Math.floor(sin(a) / 8));
   }
 
   private thrust(v: number, t: number): number {
@@ -531,7 +538,7 @@ export class Game {
       this.angle[i] = input.aim;
       this.redraw[i] = true;
     }
-    for (let k = 8; k >= 0; k--) {
+    for (let k = 10; k >= 0; k--) {
       if (input.keys & (1 << k)) this.press(s, k); else this.release(s, k);
     }
   }
@@ -572,6 +579,12 @@ export class Game {
       case Key.Cloak:
         if (this.energy[i] < 0) this.release(s, k); else this.ctl[s] |= 2;
         break;
+      case Key.StrafeLeft:
+        if (this.energy[i] < 0) this.release(s, k); else this.ctl[s] |= 4;
+        break;
+      case Key.StrafeRight:
+        if (this.energy[i] < 0) this.release(s, k); else this.ctl[s] |= 8;
+        break;
       case Key.Hyper:
         if (this.latch[s] & 2) break;
         this.latch[s] |= 2;
@@ -588,6 +601,8 @@ export class Game {
       case Key.Photon: this.latch[s] &= ~1; break;
       case Key.Impulse: this.ctl[s] &= ~1; break;
       case Key.Cloak: this.ctl[s] &= ~2; break;
+      case Key.StrafeLeft: this.ctl[s] &= ~4; break;
+      case Key.StrafeRight: this.ctl[s] &= ~8; break;
       case Key.Hyper: this.latch[s] &= ~2; break;
     }
   }

@@ -10,6 +10,8 @@ import type { Page } from './design/pages';
 /** The actions in the order the controls screen lists them. */
 export const ACTIONS: { key: Key; name: string }[] = [
   { key: Key.Impulse, name: 'THRUST' },
+  { key: Key.StrafeLeft, name: 'STRAFE LEFT' },
+  { key: Key.StrafeRight, name: 'STRAFE RIGHT' },
   { key: Key.CCW, name: 'TURN LEFT' },
   { key: Key.CW, name: 'TURN RIGHT' },
   { key: Key.Photon, name: 'PHOTONS' },
@@ -31,8 +33,10 @@ export interface Controls {
 
 export const DEFAULT_BINDINGS: Bindings = {
   [Key.Impulse]: ['KeyW', ''],
-  [Key.CCW]: ['KeyA', ''],
-  [Key.CW]: ['KeyD', ''],
+  [Key.StrafeLeft]: ['KeyA', ''],
+  [Key.StrafeRight]: ['KeyD', ''],
+  [Key.CCW]: ['', ''],
+  [Key.CW]: ['', ''],
   [Key.Photon]: ['Mouse0', 'Space'],
   [Key.Phaser]: ['Mouse2', 'KeyE'],
   [Key.Hyper]: ['KeyS', 'Mouse1'],
@@ -154,10 +158,14 @@ export function loadControls(): Controls {
     if (!raw) return defaultControls();
     const c = JSON.parse(raw) as Controls;
     const d = defaultControls();
+    const added: Key[] = [];
     for (const { key } of ACTIONS) {
       const v = c.bindings?.[key];
       if (Array.isArray(v) && v.length === 2 && v.every((s) => typeof s === 'string' && !reserved(s))) d.bindings[key] = v as [string, string];
+      else added.push(key);
     }
+    // An action newer than the saved keys takes its default keys off whatever had them.
+    for (const key of added) DEFAULT_BINDINGS[key].forEach((code, slot) => { if (code) d.bindings = bind(d.bindings, key, slot as 0 | 1, code); });
     d.mouseAim = c.mouseAim !== false;
     return d;
   } catch {

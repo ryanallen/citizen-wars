@@ -7,7 +7,7 @@ import { ACTIONS, bind, unbind, defaultControls, keyName, reserved, type Control
 
 const TITLE = 'CONTROLS';
 const ROW_Y = 36;
-const ROW_H = 10;
+const ROW_H = 9;
 const AIM_Y = 134;
 const RESET_Y = 146;
 const DONE_Y = 158;

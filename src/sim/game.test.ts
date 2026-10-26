@@ -62,6 +62,17 @@ describe('ships', () => {
     expect(g.vx[0]).toBe(v);
   });
 
+  test('the strafes push a quarter turn either side of the nose, as impulse does', () => {
+    for (const [key, a] of [[Key.StrafeRight, 64], [Key.StrafeLeft, 192]] as const) {
+      const g = round();
+      g.angle[0] = 0;
+      hold(g, 0, [key], 10);
+      expect(g.angle[0]).toBe(0);
+      expect(g.vx[0]).toBe(10 * Math.floor(cos(a) / 8));
+      expect(g.vy[0]).toBe(10 * Math.floor(sin(a) / 8));
+    }
+  });
+
   test('a velocity axis stops gaining whole pixels at 8 a tick', () => {
     const g = round();
     g.energy[0] = 127;

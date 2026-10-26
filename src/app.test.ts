@@ -47,11 +47,11 @@ describe('the design system in code', () => {
 });
 
 describe('input', () => {
-  test("the player's own keys: W thrust, A D turn, S hyperspace, Shift cloak, the mouse buttons fire", () => {
+  test("the player's own keys: W thrust, A D strafe, S hyperspace, Shift cloak, the mouse buttons fire", () => {
     const k = new KeyState();
     for (const c of ['KeyW', 'KeyD', 'KeyS', 'ShiftLeft', 'Mouse0', 'Mouse2']) k.down(c);
     expect(k.masks()).toEqual([
-      (1 << Key.Impulse) | (1 << Key.CW) | (1 << Key.Hyper) | (1 << Key.Cloak) | (1 << Key.Photon) | (1 << Key.Phaser),
+      (1 << Key.Impulse) | (1 << Key.StrafeRight) | (1 << Key.Hyper) | (1 << Key.Cloak) | (1 << Key.Photon) | (1 << Key.Phaser),
       0,
     ]);
   });

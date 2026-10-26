@@ -4,7 +4,7 @@ import { Presenter } from './present';
 import { Online } from './online';
 import { loadRelays } from './net/config';
 import { cleanCallsign, loadCallsign, saveCallsign } from './callsign';
-import { drawWorld } from './scene';
+import { drawWorld, drawBox } from './scene';
 import { NO_INPUT } from './sim/input';
 import { StartScreen, killsWorldwide, gameClock } from './start';
 import { loadSystems, systemById, systemLabel } from './systems';
@@ -26,6 +26,10 @@ let back: Mode = 'start';
 const start = new StartScreen();
 let online: Online | null = null;
 let soundOn = false;
+// The call sign being typed after F9, drawn over whatever is showing; the game
+// runs on under it, since a browser prompt would stop the page and the system with it.
+let editing: string | null = null;
+let ticks = 0;
 
 const wanted = () => decodeURIComponent(location.hash.slice(1)) || null;
 
@@ -72,8 +76,34 @@ function closeControls() {
   if (mode === 'offline') app.openMenu();
 }
 
+function callsignKey(e: KeyboardEvent) {
+  if (e.code === 'Enter' || e.code === 'NumpadEnter') {
+    const c = saveCallsign(editing ?? '');
+    if (c && online) online.callsign = c;
+    editing = null;
+  } else if (e.code === 'Escape' || e.code === 'F9') {
+    editing = null;
+  } else if (e.code === 'Backspace') {
+    editing = (editing ?? '').slice(0, -1);
+  } else if (e.key.length === 1) {
+    editing = cleanCallsign((editing ?? '') + e.key);
+  }
+}
+
+function drawCallsign(s: typeof app.screen, text: string) {
+  const width = 26;
+  const centre = (t: string) => t.padStart((width + t.length) >> 1).padEnd(width);
+  const cursor = (ticks >> 4) & 1 ? '_' : ' ';
+  drawBox(s, [centre('YOUR CALL SIGN'), '', centre(text + cursor), '', centre('ENTER SAVES  ESC CANCELS')], width);
+}
+
 window.addEventListener('keydown', (e) => {
   app.speaker.unlock();
+  if (editing !== null) {
+    if (!e.repeat || e.code === 'Backspace') callsignKey(e);
+    e.preventDefault();
+    return;
+  }
   if (mode === 'controls' && controls) {
     if (!e.repeat && controls.key(e.code)) closeControls();
     e.preventDefault();
@@ -99,8 +129,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Tab') { tab = true; e.preventDefault(); return; }
   if (e.code === 'F9') {
     e.preventDefault();
-    const c = saveCallsign(prompt('Your call sign', online?.callsign ?? '') ?? '');
-    if (c && online) online.callsign = c;
+    editing = online?.callsign ?? loadCallsign();
     app.keys.clear();
     return;
   }
@@ -133,7 +162,10 @@ window.addEventListener('pointermove', (e) => {
 window.addEventListener('pointerdown', (e) => {
   app.speaker.unlock();
   const [fx, fy] = fraction(e);
-  if (mode === 'controls' && controls) {
+  if (editing !== null) {
+    // A click away from the box leaves the call sign as it was.
+    editing = null;
+  } else if (mode === 'controls' && controls) {
     if (controls.click(e.button, fx, fy)) closeControls();
   } else if (mode === 'start') {
     if (e.button === 0) begin();
@@ -186,6 +218,7 @@ function onlineFrame(o: Online, n: number) {
 
 function frame(now: number) {
   const n = clock.ticks(now);
+  ticks += n;
   if (mode === 'start') {
     // The system is found and kept behind the start screen.
     for (let i = 0; i < n; i++) online?.tick(NO_INPUT);
@@ -204,6 +237,7 @@ function frame(now: number) {
     for (let i = 0; i < n; i++) app.tick();
     app.sound();
   }
+  if (editing !== null) drawCallsign(app.screen, editing);
   presenter.draw(app.screen);
   requestAnimationFrame(frame);
 }

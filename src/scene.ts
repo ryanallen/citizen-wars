@@ -137,6 +137,11 @@ function drawScoreboard(g: Game, s: Screen, o: SceneOptions): void {
   const width = 26;
   const pad = (v: string | number, n: number) => String(v).padStart(n);
   const lines = [' CALL SIGN  KILLS  DEATHS ', ...rows.map((r) => `${r.side === o.me ? '>' : ' '}${r.name.padEnd(9)} ${pad(r.kills, 6)} ${pad(r.deaths, 7)} `)];
+  drawBox(s, lines, width);
+}
+
+/** Lines in a box of the font's box pieces, centred on the screen, cleared behind. */
+export function drawBox(s: Screen, lines: string[], width: number): void {
   const left = 320 - (width * 10) / 2 + 5;
   const top = 100 - ((lines.length + 2) * 8) / 2;
   const edge = '\x19' + '\x1d'.repeat(width) + '\x16';

@@ -62,7 +62,12 @@ export class Online {
   }
 
   get callsign(): string { return this.o.callsign; }
-  set callsign(c: string) { this.o.callsign = c; }
+  set callsign(c: string) {
+    this.o.callsign = c;
+    const p = this.phase;
+    if (p.kind === 'host') p.host.setCallsign(c);
+    else if (p.kind === 'client') p.client.setCallsign(c);
+  }
 
   private note(s: string): void {
     this.log.push(`${new Date().toISOString().slice(11, 19)} ${s}`);

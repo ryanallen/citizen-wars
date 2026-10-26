@@ -115,6 +115,12 @@ export class Host {
     }));
   }
 
+  /** A new call sign for this player, shown to every member at once. */
+  setCallsign(c: string): void {
+    this.o.callsign = c;
+    this.rosterChanged();
+  }
+
   roster(): Member[] {
     const me = { pubkey: this.pubkey, callsign: this.o.callsign, side: this.side, joined: this.joined };
     return [me, ...[...this.members.values()].map((m) => ({ pubkey: m.pubkey, callsign: m.callsign, side: m.side, joined: m.joined }))]
@@ -352,6 +358,12 @@ export class Client {
 
   get host(): string { return this.o.host; }
   get system(): string { return this.o.system; }
+
+  /** A new call sign: hello again, and the host sends everyone the new roster. */
+  setCallsign(c: string): void {
+    this.o.callsign = c;
+    this.peer?.send('reliable', JSON.stringify({ t: 'hello', callsign: c, pubkey: this.o.me.pubkey } satisfies Control));
+  }
 
   async connect(timeoutMs = 15000): Promise<Outcome> {
     const open = await this.pool.connect();

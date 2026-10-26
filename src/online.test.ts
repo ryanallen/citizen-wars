@@ -56,3 +56,14 @@ test('handshake relays are picked by system and move on with each shift', () => 
   expect(a.length).toBe(3);
   expect(handshakeRelays(list, 'sol', 1)).not.toEqual(a);
 });
+
+test('a new call sign reaches the host or client in play at once', () => {
+  const o = new Stubbed();
+  const got: string[] = [];
+  o.phase = { kind: 'client', client: { setCallsign: (c: string) => got.push(`client ${c}`) } as unknown as Client };
+  o.callsign = 'NEW-1';
+  o.phase = { kind: 'host', host: { setCallsign: (c: string) => got.push(`host ${c}`) } as never };
+  o.callsign = 'NEW-2';
+  expect(got).toEqual(['client NEW-1', 'host NEW-2']);
+  expect(o.callsign).toBe('NEW-2');
+});

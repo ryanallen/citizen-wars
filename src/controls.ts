@@ -40,11 +40,11 @@ export const DEFAULT_BINDINGS: Bindings = {
   [Key.CW]: ['', ''],
   [Key.Reverse]: ['KeyS', ''],
   [Key.Photon]: ['Mouse0', ''],
-  [Key.Phaser]: ['Mouse2', 'KeyE'],
+  [Key.Phaser]: ['Mouse2', 'KeyF'],
   [Key.Hyper]: ['Space', 'Mouse1'],
-  [Key.Cloak]: ['ShiftLeft', ''],
-  [Key.Weapon]: ['KeyQ', 'KeyZ'],
-  [Key.Shield]: ['KeyC', ''],
+  [Key.Cloak]: ['KeyR', ''],
+  [Key.Weapon]: ['KeyQ', ''],
+  [Key.Shield]: ['KeyE', ''],
 };
 
 export const defaultControls = (): Controls => ({ bindings: structuredClone(DEFAULT_BINDINGS), mouseAim: true });

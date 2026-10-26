@@ -47,9 +47,9 @@ describe('the design system in code', () => {
 });
 
 describe('input', () => {
-  test("the player's own keys: W thrust, A D strafe, S reverse, Shift cloak, the mouse buttons fire", () => {
+  test("the player's own keys: W thrust, A D strafe, S reverse, R cloak, the mouse buttons fire", () => {
     const k = new KeyState();
-    for (const c of ['KeyW', 'KeyD', 'KeyS', 'ShiftLeft', 'Mouse0', 'Mouse2']) k.down(c);
+    for (const c of ['KeyW', 'KeyD', 'KeyS', 'KeyR', 'Mouse0', 'Mouse2']) k.down(c);
     expect(k.masks()).toEqual([
       (1 << Key.Impulse) | (1 << Key.StrafeRight) | (1 << Key.Reverse) | (1 << Key.Cloak) | (1 << Key.Photon) | (1 << Key.Phaser),
       0,
@@ -68,8 +68,8 @@ describe('input', () => {
 
   test('a tap between two ticks counts for one tick', () => {
     const k = new KeyState();
-    k.down('KeyE');
-    k.up('KeyE');
+    k.down('KeyF');
+    k.up('KeyF');
     expect(k.masks()).toEqual([1 << Key.Phaser, 0]);
     expect(k.masks()).toEqual([0, 0]);
   });

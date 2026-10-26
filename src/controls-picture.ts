@@ -22,29 +22,27 @@ const ARROW: Record<number, string[]> = {
   [Key.StrafeRight]: ['..........#....', '..........###..', '###############', '..........###..', '..........#....'],
 };
 
-const KEY_W = 116;
-const KEY_H = 13;
-const PITCH = 120;
-const ROW = 15;
+const KEY_W = 96;
+const KEY_H = 22;
+const PITCH = 100;
 const TOP = 98;
+const SPACE_H = 13;
 
-/** The pictured keys: code, the name on its cap, left edge and width. */
-const KEYS: [string, string, number, number][] = [
-  ['KeyQ', 'Q', 16, KEY_W], ['KeyW', 'W', 16 + PITCH, KEY_W], ['KeyE', 'E', 16 + 2 * PITCH, KEY_W],
-  ['KeyA', 'A', 28, KEY_W], ['KeyS', 'S', 28 + PITCH, KEY_W], ['KeyD', 'D', 28 + 2 * PITCH, KEY_W],
-  ['ShiftLeft', 'SHIFT', 40, KEY_W], ['KeyZ', 'Z', 40 + PITCH, KEY_W], ['KeyC', 'C', 40 + 2 * PITCH, KEY_W],
-  ['Space', 'SPACE', 100, 200],
+/** The pictured keys: code, the name on its cap, left edge, top, width, height. */
+const KEYS: [string, string, number, number, number, number][] = [
+  ...['Q', 'W', 'E', 'R'].map((c, n): [string, string, number, number, number, number] => [`Key${c}`, c, 8 + n * PITCH, TOP, KEY_W, KEY_H]),
+  ...['A', 'S', 'D', 'F'].map((c, n): [string, string, number, number, number, number] => [`Key${c}`, c, 20 + n * PITCH, TOP + KEY_H + 2, KEY_W, KEY_H]),
+  ['Space', 'SPACE', 90, TOP + 2 * (KEY_H + 2), 220, SPACE_H],
 ];
-const KEY_ROWS = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3];
 
 // The mouse: its body, the line under its buttons, and the wheel.
-const MOUSE_X = 480;
-const MOUSE_W = 66;
+const MOUSE_X = 494;
+const MOUSE_W = 60;
 const MOUSE_H = 48;
 const BUTTONS_H = 20;
 const WHEEL: [number, number, number, number] = [MOUSE_X + MOUSE_W / 2 - 4, TOP + 4, 9, 11];
 
-export const PICTURE_BOTTOM = TOP + 3 * ROW + KEY_H;
+export const PICTURE_BOTTOM = TOP + 2 * (KEY_H + 2) + SPACE_H;
 
 /** Text's width in pixels: 10 a character, the last glyph 8 wide. */
 const textW = (t: string) => t.length * 10 - 2;
@@ -77,19 +75,26 @@ export function drawControlsPicture(s: Screen, c: Controls): void {
   const map = keymap(c.bindings);
   const action = (code: string): Key | null => (map[code]?.[0] === 0 ? map[code][1] : null);
 
-  KEYS.forEach(([code, cap, x, w], n) => {
-    const y = TOP + KEY_ROWS[n] * ROW;
-    box(s, x, y, w, KEY_H);
+  KEYS.forEach(([code, cap, x, y, w, h]) => {
+    box(s, x, y, w, h);
     const k = action(code);
     const label = k === null ? '' : code === 'Space' && k === Key.Hyper ? 'HYPERSPACE' : LABEL[k];
+    const centre = (t: string) => x + Math.round((w - textW(t)) / 2);
+    if (h < KEY_H) {
+      // The space bar: its name and what it does on one line.
+      const t = label ? `${cap} ${label}` : cap;
+      text(s, t, centre(t), y + (h >> 1));
+      return;
+    }
+    // The cap's name on top, with the arrow beside it when it pushes the ship; what it does below.
     const arrowRows = k === null ? undefined : ARROW[k];
-    // The cap's name, a gap the arrow sits in when it has one, then what it does.
-    const t = label ? `${cap}${arrowRows ? '   ' : ' '}${label}` : cap;
-    const left = x + Math.round((w - textW(t)) / 2);
-    const mid = y + (KEY_H >> 1);
-    text(s, t, left, mid);
-    // The gap runs from the cap's last glyph to the label's first, 32 pixels.
-    if (arrowRows) arrow(s, arrowRows, left + textW(cap) + ((32 - arrowRows[0].length) >> 1), mid - (arrowRows.length >> 1));
+    const top = y + 6;
+    if (arrowRows) {
+      const left = x + Math.round((w - textW(cap) - 8 - arrowRows[0].length) / 2);
+      text(s, cap, left, top);
+      arrow(s, arrowRows, left + textW(cap) + 8, top - (arrowRows.length >> 1));
+    } else text(s, cap, centre(cap), top);
+    if (label) text(s, label, centre(label), y + 15);
   });
 
   // The mouse, its buttons named either side and the wheel's below the right one.

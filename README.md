@@ -2,7 +2,7 @@
 
 Spacewar 1985, remade for the browser and fought across the real stars near the Sun.
 
-**Play: https://ryanallen.github.io/spacewar-live/**
+**Play: https://spacewarlive.com/**
 
 Open the page and you are in a star system with whoever else is there, nearest the Sun first. There is nothing to type: the page finds the others through public Nostr relays and connects to them directly over WebRTC, with no server of its own. Send someone the address (it ends with the system, such as `#barnards-star`) and they land in the same system.
 
@@ -40,7 +40,7 @@ Spacewar Live remakes **Spacewar, © 1985 Bill Seiler**, shareware for the IBM P
 
 ```
 npm ci
-npm run dev        # http://localhost:5173/spacewar-live/
+npm run dev        # http://localhost:5173/
 npm test           # the game's tests
 npm run test:live  # against the real relays
 npm run build

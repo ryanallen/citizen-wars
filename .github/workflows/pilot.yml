@@ -33,7 +33,7 @@ jobs:
           (async () => {
             const b = await chromium.launch();
             const p = await b.newPage();
-            await p.goto('https://ryanallen.github.io/spacewar-live/test.html?pilots=1&system=' + process.env.SYSTEM);
+            await p.goto('https://spacewarlive.com/test.html?pilots=1&system=' + process.env.SYSTEM);
             const end = Date.now() + Number(process.env.SECONDS_TO_FLY) * 1000;
             let last = '';
             while (Date.now() < end) {

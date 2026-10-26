@@ -4,7 +4,7 @@
 import { chromium } from 'playwright';
 import { execSync } from 'node:child_process';
 
-const url = 'https://ryanallen.github.io/spacewar-live/';
+const url = 'https://spacewarlive.com/';
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const browser = await chromium.launch({ channel: 'msedge' });
 const page = await (await browser.newContext()).newPage();

@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 
 const n = Number(process.argv[2] ?? 4);
 const system = process.argv[3] ?? `load-${Date.now() % 100000}`;
-const url = process.env.URL ?? 'http://localhost:5199/spacewar-live/';
+const url = process.env.URL ?? 'http://localhost:5199/';
 const browser = await chromium.launch({ channel: 'msedge', args: ['--disable-background-timer-throttling', '--disable-renderer-backgrounding'] });
 const page = await (await browser.newContext()).newPage();
 page.on('pageerror', (e) => console.log('pageerror', e.message));

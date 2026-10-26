@@ -4,7 +4,7 @@
 import { chromium } from 'playwright';
 
 const n = Number(process.argv[2] ?? 16);
-const url = process.env.URL ?? 'http://localhost:5199/spacewar-live/';
+const url = process.env.URL ?? 'http://localhost:5199/';
 const browser = await chromium.launch({ channel: 'msedge', args: ['--disable-background-timer-throttling', '--disable-renderer-backgrounding'] });
 const page = await (await browser.newContext()).newPage();
 await page.goto(`${url}test.html?pilots=${n}&stagger=0`);

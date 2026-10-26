@@ -8,9 +8,9 @@ import { ACTIONS, bind, unbind, defaultControls, keyName, reserved, type Control
 const TITLE = 'CONTROLS';
 const ROW_Y = 36;
 const ROW_H = 9;
-const AIM_Y = 145;
-const RESET_Y = 155;
-const DONE_Y = 165;
+const AIM_Y = 150;
+const RESET_Y = 159;
+const DONE_Y = 168;
 /** Left edges of the action names and the two key columns. */
 const COL_X = [90, 270, 430];
 const CELL = 14;

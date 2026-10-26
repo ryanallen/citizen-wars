@@ -410,17 +410,18 @@ export class Game {
     const i = this.ship(s);
     if (this.state[i] === 0) return;
     this.angle[i] = byte(this.angle[i] + this.spin[s]);
-    // Impulse is ctl bit 1; the strafes, bits 4 and 8, push a quarter turn to either side and
-    // reverse, bit 16, straight back, all at impulse's force and cost.
-    if (this.ctl[s] & 29) {
+    // Impulse is ctl bit 1, toward the nose; Left, Right, Down and Up, bits 4, 8, 16 and 32,
+    // push that way across the screen whichever way the ship faces, all at impulse's force and cost.
+    if (this.ctl[s] & 61) {
       if ((this.tick & 0x1f) === 0) {
         this.energy[i] = sbyte(this.energy[i] - 1);
         if (this.energy[i] === 0) return;
       }
       if (this.ctl[s] & 1) this.push(i, this.angle[i]);
-      if (this.ctl[s] & 4) this.push(i, byte(this.angle[i] - 64));
-      if (this.ctl[s] & 8) this.push(i, byte(this.angle[i] + 64));
-      if (this.ctl[s] & 16) this.push(i, byte(this.angle[i] + 128));
+      if (this.ctl[s] & 4) this.push(i, 128);
+      if (this.ctl[s] & 8) this.push(i, 0);
+      if (this.ctl[s] & 16) this.push(i, 64);
+      if (this.ctl[s] & 32) this.push(i, 192);
     }
     if ((this.ctl[s] & 2) && (this.tick & 0x1f) === 0) this.energy[i] = sbyte(this.energy[i] - 1);
   }
@@ -540,7 +541,7 @@ export class Game {
       this.angle[i] = input.aim;
       this.redraw[i] = true;
     }
-    for (let k = 11; k >= 0; k--) {
+    for (let k = 12; k >= 0; k--) {
       if (input.keys & (1 << k)) this.press(s, k); else this.release(s, k);
     }
   }
@@ -581,14 +582,17 @@ export class Game {
       case Key.Cloak:
         if (this.energy[i] < 0) this.release(s, k); else this.ctl[s] |= 2;
         break;
-      case Key.StrafeLeft:
+      case Key.Left:
         if (this.energy[i] < 0) this.release(s, k); else this.ctl[s] |= 4;
         break;
-      case Key.StrafeRight:
+      case Key.Right:
         if (this.energy[i] < 0) this.release(s, k); else this.ctl[s] |= 8;
         break;
-      case Key.Reverse:
+      case Key.Down:
         if (this.energy[i] < 0) this.release(s, k); else this.ctl[s] |= 16;
+        break;
+      case Key.Up:
+        if (this.energy[i] < 0) this.release(s, k); else this.ctl[s] |= 32;
         break;
       case Key.Hyper:
         if (this.latch[s] & 2) break;
@@ -606,9 +610,10 @@ export class Game {
       case Key.Photon: this.latch[s] &= ~1; break;
       case Key.Impulse: this.ctl[s] &= ~1; break;
       case Key.Cloak: this.ctl[s] &= ~2; break;
-      case Key.StrafeLeft: this.ctl[s] &= ~4; break;
-      case Key.StrafeRight: this.ctl[s] &= ~8; break;
-      case Key.Reverse: this.ctl[s] &= ~16; break;
+      case Key.Left: this.ctl[s] &= ~4; break;
+      case Key.Right: this.ctl[s] &= ~8; break;
+      case Key.Down: this.ctl[s] &= ~16; break;
+      case Key.Up: this.ctl[s] &= ~32; break;
       case Key.Hyper: this.latch[s] &= ~2; break;
     }
   }

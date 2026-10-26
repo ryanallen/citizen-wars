@@ -5,7 +5,7 @@ import { Online } from './online';
 import { loadRelays } from './net/config';
 import { cleanCallsign, loadCallsign, saveCallsign } from './callsign';
 import { drawWorld } from './scene';
-import { keysInput, NO_INPUT } from './sim/input';
+import { NO_INPUT } from './sim/input';
 import { StartScreen, killsWorldwide, gameClock } from './start';
 import { loadSystems, systemById, systemLabel } from './systems';
 import { loadSky, skyFrom, type Sky } from './sky';
@@ -151,8 +151,8 @@ window.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefau
 function onlineFrame(o: Online, n: number) {
   for (let i = 0; i < n; i++) {
     const v = o.view();
-    const [l, r] = app.masks(v.game, v.side);
-    o.tick(keysInput(l | r));
+    const [l, r] = app.inputs(v.game, v.side);
+    o.tick({ keys: l.keys | r.keys, aim: l.aim });
   }
   const v = o.view();
   const names: Record<number, string> = {};

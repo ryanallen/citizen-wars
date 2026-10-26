@@ -9,10 +9,11 @@ import type { Page } from './design/pages';
 
 /** The actions in the order the controls screen lists them. */
 export const ACTIONS: { key: Key; name: string }[] = [
+  { key: Key.Up, name: 'MOVE UP' },
+  { key: Key.Left, name: 'MOVE LEFT' },
+  { key: Key.Down, name: 'MOVE DOWN' },
+  { key: Key.Right, name: 'MOVE RIGHT' },
   { key: Key.Impulse, name: 'THRUST' },
-  { key: Key.StrafeLeft, name: 'STRAFE LEFT' },
-  { key: Key.StrafeRight, name: 'STRAFE RIGHT' },
-  { key: Key.Reverse, name: 'REVERSE' },
   { key: Key.CCW, name: 'TURN LEFT' },
   { key: Key.CW, name: 'TURN RIGHT' },
   { key: Key.Photon, name: 'PHOTONS' },
@@ -28,17 +29,18 @@ export type Bindings = Record<number, [string, string]>;
 
 export interface Controls {
   bindings: Bindings;
-  /** The ship turns toward the mouse pointer. */
+  /** The ship faces the mouse pointer. */
   mouseAim: boolean;
 }
 
 export const DEFAULT_BINDINGS: Bindings = {
-  [Key.Impulse]: ['KeyW', ''],
-  [Key.StrafeLeft]: ['KeyA', ''],
-  [Key.StrafeRight]: ['KeyD', ''],
+  [Key.Up]: ['KeyW', ''],
+  [Key.Left]: ['KeyA', ''],
+  [Key.Down]: ['KeyS', ''],
+  [Key.Right]: ['KeyD', ''],
+  [Key.Impulse]: ['', ''],
   [Key.CCW]: ['', ''],
   [Key.CW]: ['', ''],
-  [Key.Reverse]: ['KeyS', ''],
   [Key.Photon]: ['Mouse0', ''],
   [Key.Phaser]: ['Mouse2', 'KeyF'],
   [Key.Hyper]: ['Space', 'Mouse1'],

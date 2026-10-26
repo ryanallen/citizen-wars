@@ -1,7 +1,7 @@
 // The start screen's picture of the controls (design-system.md, Start screen): a
 // keyboard of the keys W A S D sit among, and a mouse, each key and button named
 // with what it does as the player has it bound. W A S D carry arrows for the way
-// they push the ship.
+// they push the ship across the screen.
 
 import { Screen } from './screen';
 import { Key } from './sim/game';
@@ -9,17 +9,17 @@ import { keymap, type Controls } from './controls';
 
 /** What a pictured key says it does, short enough to fit beside its letter. */
 const LABEL: Record<number, string> = {
-  [Key.Impulse]: 'THRUST', [Key.StrafeLeft]: 'STRAFE', [Key.StrafeRight]: 'STRAFE', [Key.Reverse]: 'REVERSE',
+  [Key.Up]: 'UP', [Key.Left]: 'LEFT', [Key.Down]: 'DOWN', [Key.Right]: 'RIGHT', [Key.Impulse]: 'THRUST',
   [Key.CCW]: 'TURN', [Key.CW]: 'TURN', [Key.Photon]: 'PHOTONS', [Key.Phaser]: 'PHASERS', [Key.Hyper]: 'HYPER',
   [Key.Cloak]: 'CLOAK', [Key.Weapon]: 'TO ENERGY', [Key.Shield]: 'TO SHIELD',
 };
 
 /** The arrows for the keys that push the ship, about square on the screen's tall pixels. */
 const ARROW: Record<number, string[]> = {
-  [Key.Impulse]: ['.....#.....', '...#####...', '.#########.', '....###....', '....###....', '....###....'],
-  [Key.Reverse]: ['....###....', '....###....', '....###....', '.#########.', '...#####...', '.....#.....'],
-  [Key.StrafeLeft]: ['....#..........', '..###..........', '###############', '..###..........', '....#..........'],
-  [Key.StrafeRight]: ['..........#....', '..........###..', '###############', '..........###..', '..........#....'],
+  [Key.Up]: ['.....#.....', '...#####...', '.#########.', '....###....', '....###....', '....###....'],
+  [Key.Down]: ['....###....', '....###....', '....###....', '.#########.', '...#####...', '.....#.....'],
+  [Key.Left]: ['....#..........', '..###..........', '###############', '..###..........', '....#..........'],
+  [Key.Right]: ['..........#....', '..........###..', '###############', '..........###..', '..........#....'],
 };
 
 const KEY_W = 96;

@@ -2,7 +2,7 @@
 // to the menu (original.md, Keys and Ship death; design-system.md, Menu).
 
 import { Game } from './sim/game';
-import { keysInput } from './sim/input';
+import { keysInput, type Input } from './sim/input';
 import { Menu } from './menu';
 import { KeyState } from './input';
 import { Pointer } from './pointer';
@@ -56,10 +56,10 @@ export class App {
     if (save) saveControls(c);
   }
 
-  /** The player's own keys this tick, the mouse aim on side `side`'s ship included; and the second player's. */
-  masks(g: Game, side: number): [number, number] {
+  /** The player's own keys this tick with the mouse aim on side `side`'s ship; and the second player's. */
+  inputs(g: Game, side: number): [Input, Input] {
     const [l, r] = this.keys.masks();
-    return [l | (this.controls.mouseAim ? this.pointer.keys(g, side) : 0), r];
+    return [{ keys: l, aim: this.controls.mouseAim ? this.pointer.aim(g, side) : -1 }, keysInput(r)];
   }
 
   /** A function key; returns true when it was one of the game's. */
@@ -88,8 +88,7 @@ export class App {
       this.menu.step();
       return;
     }
-    const [l, r] = this.masks(this.game, 0);
-    this.game.inputs = [keysInput(l), keysInput(r)];
+    this.game.inputs = this.inputs(this.game, 0);
     if (this.game.step() === 'round-over') this.openMenu();
   }
 

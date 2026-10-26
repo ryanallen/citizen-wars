@@ -62,12 +62,12 @@ describe('ships', () => {
     expect(g.vx[0]).toBe(v);
   });
 
-  test('the strafes push a quarter turn either side of the nose and reverse straight back, as impulse does', () => {
-    for (const [key, a] of [[Key.StrafeRight, 64], [Key.StrafeLeft, 192], [Key.Reverse, 128]] as const) {
+  test('up, left, down and right push that way across the screen whichever way the ship faces, as impulse does', () => {
+    for (const [key, a] of [[Key.Right, 0], [Key.Down, 64], [Key.Left, 128], [Key.Up, 192]] as const) {
       const g = round();
-      g.angle[0] = 0;
+      g.angle[0] = 40;
       hold(g, 0, [key], 10);
-      expect(g.angle[0]).toBe(0);
+      expect(g.angle[0]).toBe(40);
       expect(g.vx[0]).toBe(10 * Math.floor(cos(a) / 8));
       expect(g.vy[0]).toBe(10 * Math.floor(sin(a) / 8));
     }

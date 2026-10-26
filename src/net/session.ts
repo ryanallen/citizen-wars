@@ -253,10 +253,13 @@ export class Host {
     else if (c.t === 'ping') this.sendTo(from, JSON.stringify({ t: 'pong', at: c.at } satisfies Control));
     else if (c.t === 'bye') this.remove(from);
     else if (c.t === 'relay-for' && ch === 'reliable') {
-      if (this.freeSide() < 0) return;
+      // Only a member connected directly may pass traffic, and never for a key already here.
+      if (!m.peer || c.pubkey === this.pubkey || this.members.has(c.pubkey) || this.freeSide() < 0) return;
       const side = this.freeSide();
       this.add({ pubkey: c.pubkey, callsign: c.callsign, side, joined: Date.now(), input: NO_INPUT, ack: 0, peer: null, via: from });
     } else if (c.t === 'relayed') {
+      // Only from the member that passes this one's traffic, so no member can speak for another.
+      if (!m.peer || this.members.get(c.from)?.via !== from) return;
       const inner = c.data.slice(1);
       if (c.data[0] === 'b') this.message(c.from, 'fast', unb64(inner).buffer as ArrayBuffer);
       else this.message(c.from, 'reliable', decodeURIComponent(escape(atob(inner))));

@@ -6,21 +6,25 @@ Spacewar 1985, remade for the browser and fought across the real stars near the 
 
 Open the page and you are in a star system with whoever else is there, nearest the Sun first. There is nothing to type: the page finds the others through public Nostr relays and connects to them directly over WebRTC, with no server of its own. Send someone the address (it ends with the system, such as `#barnards-star`) and they land in the same system.
 
-## Keys
+## Controls
 
-| | Left keys | Or the right keys | |
-| --- | --- | --- | --- |
-| Phaser | Q | keypad 7 or I | |
-| Cloak | W | keypad 8 or O | |
-| Photon torpedo | E | keypad 9 or P | |
-| Rotate anticlockwise | A | keypad 4 or K | |
-| Impulse | S | keypad 5 or L | |
-| Rotate clockwise | D | keypad 6 or ; | |
-| Shield into energy | Z | keypad 1 or , | |
-| Hyperspace | X | keypad 2 or . | |
-| Energy into shield | C | keypad 3 or / | |
+Two hands: the mouse aims and fires, the left hand flies.
 
-Online either set flies your ship. Tab shows the scoreboard, F8 turns sound on and off, F9 changes your call sign, and Esc goes to the offline game: the 1985 menu, two players on one keyboard or against the robots (F2 play, F3 and F4 robots, F5 planet, F6 gravity, F7 pause, F1 the help pages).
+| | Your keys | Second player (offline) |
+| --- | --- | --- |
+| Aim | the mouse: the ship turns toward the pointer | |
+| Thrust | W | keypad 8 or Up |
+| Turn left / right | A / D | keypad 4 / 6 or Left / Right |
+| Photon torpedo | left click or Space | keypad 9 or Enter |
+| Phaser | right click or E | keypad 7 or / |
+| Hyperspace | S or middle click | keypad 0 or 2, or Down |
+| Cloak | Left Shift | keypad 5 or Right Shift |
+| Shield into energy | Q or Z | keypad 1 or , |
+| Energy into shield | C | keypad 3 or . |
+
+**F10 changes your controls**: any action to any key or mouse button, two each, and mouse aim on or off. They are kept in your browser. Pressing a turn key takes the ship back from the mouse until the mouse moves again.
+
+Tab shows the scoreboard, F8 turns sound on and off, F9 changes your call sign, and Esc goes to the offline game: the 1985 menu, two players on one keyboard or against the robots (F2 play, F3 and F4 robots, F5 planet, F6 gravity, F7 pause, F1 the help pages).
 
 ## What it remakes
 

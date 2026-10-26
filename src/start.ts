@@ -7,17 +7,28 @@ import { font } from './design/bitmaps';
 import { titleBlocks } from './design/title';
 import { Rng } from './sim/rng';
 import { FLY_STEPS, TICKS_PER_STEP, HOLD_TICKS } from './menu';
+import { ACTIONS, keyName, type Controls } from './controls';
 
-// Each action has three keys: the left hand's, the keypad's, the right hand's.
-// The three action rows are padded to one length so their columns line up.
-export const CONTROLS = [
-  'EVERY ACTION: LEFT KEY, KEYPAD KEY, OR RIGHT KEY',
-  'Q 7 I PHASERS     W 8 O CLOAK      E 9 P PHOTONS     ',
-  'A 4 K TURN LEFT   S 5 L IMPULSE    D 6 ; TURN RIGHT  ',
-  'Z 1 , TO ENERGY   X 2 . HYPERSPACE C 3 / TO SHIELD   ',
-  'TAB SCORES  F8 SOUND  F9 CALL SIGN  ESC OFFLINE',
-];
-export const PROMPT = 'PRESS ENTER TO START';
+// The player's own controls, as they have them, wrapped to the screen's width,
+// then the keys the game keeps.
+export const MORE = 'F10 CONTROLS  TAB SCORES  F8 SOUND  F9 CALL SIGN  ESC OFFLINE';
+const WIDTH = 60;
+
+export function controlLines(c: Controls): string[] {
+  const items: string[] = c.mouseAim ? ['MOUSE AIMS'] : [];
+  for (const { key, name } of ACTIONS) {
+    const keys = c.bindings[key].filter(Boolean).map(keyName);
+    if (keys.length) items.push(`${keys.join('/')} ${name}`);
+  }
+  const lines: string[] = [];
+  for (const item of items) {
+    const last = lines.length - 1;
+    if (last >= 0 && lines[last].length + 3 + item.length <= WIDTH) lines[last] += `   ${item}`;
+    else lines.push(item);
+  }
+  return [...lines, MORE];
+}
+export const PROMPT = 'PRESS ENTER OR CLICK TO START';
 /** The site-wide count of kills, by robots or people, in games a person is in (net/tally.ts). */
 export const killsWorldwide = (n: number): string => `${n} ${n === 1 ? 'KILL' : 'KILLS'} WORLDWIDE`;
 /** How long a game has lasted: M:SS, or H:MM:SS from an hour. */
@@ -72,12 +83,12 @@ export class StartScreen {
     }
   }
 
-  draw(s: Screen, stars: [number, number][], kills: number | null = null): void {
+  draw(s: Screen, stars: [number, number][], controls: Controls, kills: number | null = null): void {
     s.clear();
     for (const [x, y] of stars) s.xorPixel(x, y);
     // Solid over the stars, so no star shows through a letter.
     this.positions().forEach(([x, y], n) => s.stamp(font, this.blocks[n].code, x, y));
-    CONTROLS.forEach((line, n) => centred(s, line, 108 + n * 10));
+    controlLines(controls).forEach((line, n) => centred(s, line, 108 + n * 10));
     if (!(this.ticks & 32)) centred(s, PROMPT, 176);
     if (kills !== null) centred(s, killsWorldwide(kills), 192);
   }

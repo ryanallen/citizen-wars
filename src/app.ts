@@ -5,6 +5,9 @@ import { Game } from './sim/game';
 import { keysInput } from './sim/input';
 import { Menu } from './menu';
 import { KeyState } from './input';
+import { Pointer } from './pointer';
+import { keymap, keysPage, loadControls, saveControls, type Controls } from './controls';
+import { KEYS_PAGE } from './design/pages';
 import { Speaker } from './sound';
 import { Screen } from './screen';
 
@@ -13,12 +16,15 @@ export class App {
   readonly game: Game;
   readonly menu: Menu;
   readonly keys = new KeyState();
+  readonly pointer = new Pointer();
+  controls: Controls = loadControls();
   readonly speaker = new Speaker();
   mode: 'menu' | 'play' = 'menu';
 
   constructor(seed: number) {
     this.game = new Game(seed, this.screen);
     this.menu = new Menu(this.screen, this.game.rng, () => [this.game.wins[0], this.game.wins[1]]);
+    this.setControls(this.controls, false);
     this.openMenu();
   }
 
@@ -39,6 +45,21 @@ export class App {
     this.game.paused = false;
     this.keys.clear();
     this.game.startRound();
+  }
+
+  /** The player's own keys and mouse aim, kept in the browser when `save`. */
+  setControls(c: Controls, save = true): void {
+    this.controls = c;
+    this.keys.map = keymap(c.bindings);
+    this.keys.clear();
+    this.menu.keysPage = keysPage(KEYS_PAGE, c.bindings);
+    if (save) saveControls(c);
+  }
+
+  /** The player's own keys this tick, the mouse aim on side `side`'s ship included; and the second player's. */
+  masks(g: Game, side: number): [number, number] {
+    const [l, r] = this.keys.masks();
+    return [l | (this.controls.mouseAim ? this.pointer.keys(g, side) : 0), r];
   }
 
   /** A function key; returns true when it was one of the game's. */
@@ -67,7 +88,7 @@ export class App {
       this.menu.step();
       return;
     }
-    const [l, r] = this.keys.masks();
+    const [l, r] = this.masks(this.game, 0);
     this.game.inputs = [keysInput(l), keysInput(r)];
     if (this.game.step() === 'round-over') this.openMenu();
   }

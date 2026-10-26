@@ -1,19 +1,10 @@
-// Keys to each player's key state (ticket, Phase 1): left Q W E / A S D / Z X C,
-// right keypad 7 8 9 / 4 5 6 / 1 2 3, or I O P / K L ; / , . / with no keypad.
+// Keys and mouse buttons to each player's key state (controls.ts): the
+// player's own, which they can change, and the second player's keypad and arrows.
 
 import { Key } from './sim/game';
+import { DEFAULT_BINDINGS, keymap } from './controls';
 
-export const KEYMAP: Record<string, [0 | 1, Key]> = {
-  KeyQ: [0, Key.Phaser], KeyW: [0, Key.Cloak], KeyE: [0, Key.Photon],
-  KeyA: [0, Key.CCW], KeyS: [0, Key.Impulse], KeyD: [0, Key.CW],
-  KeyZ: [0, Key.Weapon], KeyX: [0, Key.Hyper], KeyC: [0, Key.Shield],
-  Numpad7: [1, Key.Phaser], Numpad8: [1, Key.Cloak], Numpad9: [1, Key.Photon],
-  Numpad4: [1, Key.CCW], Numpad5: [1, Key.Impulse], Numpad6: [1, Key.CW],
-  Numpad1: [1, Key.Weapon], Numpad2: [1, Key.Hyper], Numpad3: [1, Key.Shield],
-  KeyI: [1, Key.Phaser], KeyO: [1, Key.Cloak], KeyP: [1, Key.Photon],
-  KeyK: [1, Key.CCW], KeyL: [1, Key.Impulse], Semicolon: [1, Key.CW],
-  Comma: [1, Key.Weapon], Period: [1, Key.Hyper], Slash: [1, Key.Shield],
-};
+export const KEYMAP = keymap(DEFAULT_BINDINGS);
 
 /**
  * Held keys as two bit masks, bit n = Key n; a key held by two codes stays held
@@ -24,15 +15,17 @@ export class KeyState {
   private held = new Set<string>();
   private tapped = new Set<string>();
 
+  constructor(public map: Record<string, [0 | 1, Key]> = KEYMAP) {}
+
   down(code: string): boolean {
-    if (!(code in KEYMAP)) return false;
+    if (!(code in this.map)) return false;
     this.held.add(code);
     this.tapped.add(code);
     return true;
   }
 
   up(code: string): boolean {
-    if (!(code in KEYMAP)) return false;
+    if (!(code in this.map)) return false;
     this.held.delete(code);
     return true;
   }
@@ -46,7 +39,7 @@ export class KeyState {
   masks(): [number, number] {
     const m: [number, number] = [0, 0];
     for (const code of new Set([...this.held, ...this.tapped])) {
-      const [side, key] = KEYMAP[code];
+      const [side, key] = this.map[code];
       m[side] |= 1 << key;
     }
     this.tapped.clear();

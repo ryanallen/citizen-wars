@@ -30,6 +30,8 @@ export class Menu {
   private phase: Phase = { kind: 'title-hold', ticks: 0, next: 'fly' };
   private tick = 0;
   private planetFrame = 0;
+  /** The GAME KEYS page, with the keys as the player has them (controls.ts). */
+  keysPage: Page = KEYS_PAGE;
 
   constructor(private screen: Screen, private rng: Rng, private wins: () => [number, number]) {}
 
@@ -105,8 +107,8 @@ export class Menu {
 
   private advancePage(page: Page): void {
     if (page === INSTRUCTIONS_PAGE) {
-      this.drawPage(KEYS_PAGE);
-      this.phase = { kind: 'page', ticks: 0, page: KEYS_PAGE };
+      this.drawPage(this.keysPage);
+      this.phase = { kind: 'page', ticks: 0, page: this.keysPage };
     } else {
       this.showTitle();
     }

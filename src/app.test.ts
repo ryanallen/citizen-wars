@@ -47,31 +47,34 @@ describe('the design system in code', () => {
 });
 
 describe('input', () => {
-  test('left Q W E / A S D / Z X C', () => {
+  test("the player's own keys: W thrust, A D turn, S hyperspace, Shift cloak, the mouse buttons fire", () => {
     const k = new KeyState();
-    for (const c of ['KeyQ', 'KeyD', 'KeyX']) k.down(c);
-    expect(k.masks()).toEqual([(1 << Key.Phaser) | (1 << Key.CW) | (1 << Key.Hyper), 0]);
+    for (const c of ['KeyW', 'KeyD', 'KeyS', 'ShiftLeft', 'Mouse0', 'Mouse2']) k.down(c);
+    expect(k.masks()).toEqual([
+      (1 << Key.Impulse) | (1 << Key.CW) | (1 << Key.Hyper) | (1 << Key.Cloak) | (1 << Key.Photon) | (1 << Key.Phaser),
+      0,
+    ]);
   });
 
-  test('right keypad and its stand-ins I O P / K L ; / , . /', () => {
+  test('the second player on the keypad, 8 thrust and 0 hyperspace, or the arrows', () => {
     const k = new KeyState();
-    k.down('Numpad9');
-    k.down('KeyK');
-    k.down('Slash');
-    expect(k.masks()).toEqual([0, (1 << Key.Photon) | (1 << Key.CCW) | (1 << Key.Shield)]);
-    k.up('Numpad9');
-    expect(k.masks()[1] & (1 << Key.Photon)).toBe(0);
+    k.down('Numpad8');
+    k.down('Numpad0');
+    k.down('ArrowLeft');
+    expect(k.masks()).toEqual([0, (1 << Key.Impulse) | (1 << Key.Hyper) | (1 << Key.CCW)]);
+    k.up('Numpad8');
+    expect(k.masks()[1] & (1 << Key.Impulse)).toBe(0);
   });
 
   test('a tap between two ticks counts for one tick', () => {
     const k = new KeyState();
     k.down('KeyE');
     k.up('KeyE');
-    expect(k.masks()).toEqual([1 << Key.Photon, 0]);
+    expect(k.masks()).toEqual([1 << Key.Phaser, 0]);
     expect(k.masks()).toEqual([0, 0]);
   });
 
-  test('other keys are not the game\'s', () => {
+  test("other keys are not the game's", () => {
     expect(new KeyState().down('KeyG')).toBe(false);
   });
 });

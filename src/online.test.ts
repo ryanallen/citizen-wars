@@ -67,3 +67,18 @@ test('a new call sign reaches the host or client in play at once', () => {
   expect(got).toEqual(['client NEW-1', 'host NEW-2']);
   expect(o.callsign).toBe('NEW-2');
 });
+
+test('a host gives its system up only to a claimant that lets it in', async () => {
+  const o = new Stubbed();
+  let stopped = 0;
+  const host = { stop: () => { stopped++; } } as never;
+  o.phase = { kind: 'host', host };
+  const yieldTo = (o as unknown as { yieldTo(h: unknown, s: string, w: string): Promise<void> }).yieldTo.bind(o);
+  // A note no host stands behind: tried, not answered, kept.
+  await yieldTo(host, 'sol', '0000fake');
+  expect([o.tries, stopped, o.phase.kind, o.joined]).toEqual([['sol'], 0, 'host', null]);
+  // A real host that keeps the system: joined, and this one stops hosting.
+  o.joinable.add('sol');
+  await yieldTo(host, 'sol', '0000real');
+  expect([stopped, o.joined]).toEqual([1, 'sol']);
+});

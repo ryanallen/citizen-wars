@@ -15,6 +15,8 @@ import { encodeInput, decodeInput, encodeWorld, decodeWorld, b64, unb64, type Co
 const TICK_HZ = 1193182 / 16390;
 /** How often a host may rewrite its game's kills (tally.ts). */
 const KILLS_EVERY_MS = 10000;
+/** How long before trying again a claimant that did not let this host in. */
+const YIELD_RETRY_MS = 60000;
 
 interface Remote {
   pubkey: string;
@@ -61,8 +63,10 @@ export class Host {
   sentBytes = 0;
   worldsOut = 0;
   onRoster: (roster: Member[]) => void = () => {};
-  /** Another host keeps this system: this one should join it instead. */
+  /** Another host claims this system and its key keeps it: try joining it instead. */
   onYield: (winner: string) => void = () => {};
+  /** When each claimant was last tried, so a host that never answers is tried only now and then. */
+  private claimants = new Map<string, number>();
   private notes: Pool;
   private signalPool: Pool;
   private signals: Signals;
@@ -111,7 +115,10 @@ export class Host {
     this.noteTimer = setInterval(() => void this.publishNote(), NOTE_EVERY_MS);
     this.stops.push(watchNotes(this.notes, this.o.system, (n) => {
       if (n.host === this.pubkey || this.members.size) return;
-      if (keeps(n.host, this.pubkey) === n.host) this.onYield(n.host);
+      if (keeps(n.host, this.pubkey) !== n.host) return;
+      if (this.now() - (this.claimants.get(n.host) ?? -Infinity) < YIELD_RETRY_MS) return;
+      this.claimants.set(n.host, this.now());
+      this.onYield(n.host);
     }));
   }
 

@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { Identity, type Filter, type NostrEvent, type Pool } from './nostr';
-import { GAME_TAG, countKills, killsEvent } from './tally';
+import { GAME_TAG, SITE_BORN, countKills, killsEvent, mostKills } from './tally';
 import { Host } from './session';
 import { NO_INPUT, keysInput } from '../sim/input';
 import { gameClock } from '../start';
@@ -26,10 +26,11 @@ test('each game counts its highest kills once, whichever host wrote them, across
   const b = Identity.random();
   const events: NostrEvent[] = [];
   // Twenty games of 3 kills each, every one written as it rose: 1, 2, 3.
-  for (let g = 0; g < 20; g++) for (let k = 1; k <= 3; k++) events.push(at(await killsEvent(a, 'sol', 5000 + g, k), 1000 + g * 3 + k));
+  const T = SITE_BORN;
+  for (let g = 0; g < 20; g++) for (let k = 1; k <= 3; k++) events.push(at(await killsEvent(a, 'sol', T + g, k), T + 1000 + g * 3 + k));
   // A host taking over game 19 carries its 3 kills and adds 2 more.
-  events.push(at(await killsEvent(b, 'sol', 5019, 5), 2000));
-  events.push(at(await killsEvent(b, 'alpha-centauri', 7000, 4), 2001));
+  events.push(at(await killsEvent(b, 'sol', T + 19, 5), T + 2000));
+  events.push(at(await killsEvent(b, 'alpha-centauri', T + 700, 4), T + 2001));
   expect(await countKills(fakePool(events, 7), 50)).toBe(19 * 3 + 5 + 4);
 });
 
@@ -66,4 +67,17 @@ test('a game begins at the first key: before it, no clock and nothing written', 
 
 test('the game clock reads M:SS, and H:MM:SS from an hour', () => {
   expect([0, 59.9, 61, 3599, 3600, 3725].map(gameClock)).toEqual(['0:00', '0:59', '1:01', '59:59', '1:00:00', '1:02:05']);
+});
+
+test('a note counts no more kills than its game could have made', async () => {
+  const a = Identity.random();
+  const T = SITE_BORN + 86400;
+  // Twelve ships each dying once per explosion: two kills a second, and a start of twelve.
+  expect([mostKills(T, T), mostKills(T, T + 60), mostKills(T - 86400 * 365, T), mostKills(T + 3600, T)]).toEqual([12, 132, 0, 0]);
+  const events = [
+    at(await killsEvent(a, 'sol', T, 999999999), T + 60), // a minute old: 132 at most
+    at(await killsEvent(a, 'sol', 1000, 50), T), // before the site
+    at(await killsEvent(a, 'vega', T + 3600, 50), T), // an hour in the future
+  ];
+  expect(await countKills(fakePool(events, 7), 50)).toBe(132);
 });

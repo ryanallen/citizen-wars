@@ -270,6 +270,33 @@ export class Online {
     return false;
   }
 
+  private yielding = false;
+
+  /** Join the host whose key keeps this system, and stop hosting it; keep it if that host does not answer. */
+  protected async yieldTo(host: Host, system: string, winner: string): Promise<void> {
+    if (this.yielding) return;
+    this.yielding = true;
+    try {
+      this.note(`${system}: ${winner.slice(0, 8)} keeps it, joining them`);
+      const { outcome, client } = await this.tryJoin({ system, note: { system, host: winner, players: 0, cap: 0, members: [winner], at: 0 } }, 1);
+      const still = this.phase.kind === 'host' && this.phase.host === host;
+      if (outcome === 'failed' || !still) {
+        client?.close();
+        if (still) this.note(`${system}: ${winner.slice(0, 8)} did not answer, keeping it`);
+        return;
+      }
+      host.stop();
+      if (client) return this.becomeClient(client);
+      // Full: a real host has it, so look again as at the start.
+      this.wanted = system;
+      this.phase = { kind: 'connecting', attempt: 0, system };
+      this.running = false;
+      this.start();
+    } finally {
+      this.yielding = false;
+    }
+  }
+
   private async hostSystem(system: string, game?: Game, side = 0): Promise<boolean> {
     const stars = systemById(system)?.stars;
     const host = new Host({ system, me: this.me, relays: this.o.relays, callsign: this.o.callsign, game, side, stars, refuseDirect: this.o.refuseDirect });
@@ -282,14 +309,9 @@ export class Online {
     this.phase = { kind: 'host', host };
     this.o.onSystem?.(system);
     this.note(`hosting ${system}`);
-    host.onYield = (winner) => {
-      this.note(`${system}: ${winner.slice(0, 8)} keeps it, joining them`);
-      host.stop();
-      this.wanted = system;
-      this.phase = { kind: 'connecting', attempt: 0, system };
-      this.running = false;
-      this.start();
-    };
+    // Anyone can write a note claiming the system, so this host gives it up
+    // only to a claimant that answers; one that never does is a fake.
+    host.onYield = (winner) => void this.yieldTo(host, system, winner);
     return true;
   }
 }

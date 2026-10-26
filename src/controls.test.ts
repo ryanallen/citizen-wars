@@ -29,7 +29,7 @@ describe('bindings', () => {
   });
 
   test('clearing the first key moves the second up', () => {
-    expect(unbind(DEFAULT_BINDINGS, Key.Photon, 0)[Key.Photon]).toEqual(['Space', '']);
+    expect(unbind(DEFAULT_BINDINGS, Key.Hyper, 0)[Key.Hyper]).toEqual(['Mouse1', '']);
   });
 
   test('the player\'s keys win over the second player\'s', () => {
@@ -48,7 +48,7 @@ describe('bindings', () => {
 
   test('the GAME KEYS page shows the keys as bound, each cell 7 wide', () => {
     const rows = keysPage(KEYS_PAGE, DEFAULT_BINDINGS).filter(([x, y]) => x === 50 && [64, 96, 128].includes(y));
-    expect(rows[0][2]).toBe('\x15 RMB/E \x15   W   \x15LMB/SPC\x15    \x15  7//  \x15 8/UP  \x15 9/ENT \x15');
+    expect(rows[0][2]).toBe('\x15 RMB/E \x15   W   \x15  LMB  \x15\x15  7//  \x15 8/UP  \x15 9/ENT \x15');
     for (const [, , t] of rows) expect(t.length).toBe(KEYS_PAGE.find(([x, y]) => x === 50 && y === 64)![2].length);
   });
 });

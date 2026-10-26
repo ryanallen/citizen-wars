@@ -62,8 +62,8 @@ describe('ships', () => {
     expect(g.vx[0]).toBe(v);
   });
 
-  test('the strafes push a quarter turn either side of the nose, as impulse does', () => {
-    for (const [key, a] of [[Key.StrafeRight, 64], [Key.StrafeLeft, 192]] as const) {
+  test('the strafes push a quarter turn either side of the nose and reverse straight back, as impulse does', () => {
+    for (const [key, a] of [[Key.StrafeRight, 64], [Key.StrafeLeft, 192], [Key.Reverse, 128]] as const) {
       const g = round();
       g.angle[0] = 0;
       hold(g, 0, [key], 10);

@@ -8,15 +8,15 @@ import { ACTIONS, bind, unbind, defaultControls, keyName, reserved, type Control
 const TITLE = 'CONTROLS';
 const ROW_Y = 36;
 const ROW_H = 9;
-const AIM_Y = 134;
-const RESET_Y = 146;
-const DONE_Y = 158;
+const AIM_Y = 145;
+const RESET_Y = 155;
+const DONE_Y = 165;
 /** Left edges of the action names and the two key columns. */
 const COL_X = [90, 270, 430];
 const CELL = 14;
 const INVERSE = '\x0c';
 
-/** The rows: the nine actions, then mouse aim, reset and done. */
+/** The rows: the actions, then mouse aim, reset and done. */
 const AIM = ACTIONS.length;
 const RESET = AIM + 1;
 const DONE = AIM + 2;

@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
-import { StartScreen, CYCLE_TICKS, controlLines, MORE } from './start';
-import { defaultControls } from './controls';
+import { StartScreen, CYCLE_TICKS, MORE } from './start';
+import { defaultControls, unbind } from './controls';
+import { Key } from './sim/game';
 import { HOLD_TICKS, FLY_STEPS, TICKS_PER_STEP } from './menu';
 import { Screen } from './screen';
 import { font } from './design/bitmaps';
@@ -32,11 +33,15 @@ test('no star shows through a letter', () => {
   }
 });
 
-test("the start screen lists the player's own keys, each line fitting the screen", () => {
-  const lines = controlLines(defaultControls());
-  expect(lines[0]).toMatch(/^MOUSE AIMS {3}W THRUST/);
-  expect(lines.join(' ')).toContain('S/MID CLICK HYPERSPACE');
-  expect(lines.at(-1)).toBe(MORE);
-  for (const l of lines) expect(l.length).toBeLessThanOrEqual(64);
-  expect(lines.length).toBeLessThanOrEqual(6);
+test("the start screen draws the player's own keys on a keyboard and mouse", () => {
+  const read = (c: ReturnType<typeof defaultControls>) => { const sc = new Screen(); new StartScreen().draw(sc, [], c); return sc.px; };
+  const d = defaultControls();
+  const plain = read(d);
+  // The picture is drawn between the title and the prompt.
+  let lit = 0;
+  for (let y = 98; y < 160; y++) for (let x = 0; x < 640; x++) lit += plain[y * 640 + x];
+  expect(lit).toBeGreaterThan(2000);
+  // A key taken off the picture changes it.
+  expect(read({ ...d, bindings: unbind(d.bindings, Key.Cloak, 0) })).not.toEqual(plain);
+  expect(MORE).toContain('F10 CONTROLS');
 });

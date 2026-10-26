@@ -1,5 +1,5 @@
 /** Key bits, in the order the original walks them (original.md, Keys). */
-export enum Key { CW = 0, CCW = 1, Shield = 2, Weapon = 3, Phaser = 4, Photon = 5, Impulse = 6, Cloak = 7, Hyper = 8, StrafeLeft = 9, StrafeRight = 10 }
+export enum Key { CW = 0, CCW = 1, Shield = 2, Weapon = 3, Phaser = 4, Photon = 5, Impulse = 6, Cloak = 7, Hyper = 8, StrafeLeft = 9, StrafeRight = 10, Reverse = 11 }
 
 /**
  * What a player does in one tick: the nine key bits (bit n = Key n) and an

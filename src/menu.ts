@@ -1,4 +1,4 @@
-// The menu's attract loop (design-system.md, Citizen Wars menu): the title with
+// The menu's attract loop (design-system.md, Spacewar Live menu): the title with
 // the credit and win counts, then GAME INSTRUCTIONS, then GAME KEYS, round again.
 
 import { Screen } from './screen';

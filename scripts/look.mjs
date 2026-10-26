@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const [out, ...steps] = process.argv.slice(2);
-const url = process.env.URL ?? 'http://localhost:5199/citizen-wars/';
+const url = process.env.URL ?? 'http://localhost:5199/spacewar-live/';
 fs.mkdirSync(out, { recursive: true });
 
 const browser = await chromium.launch({ channel: 'msedge' });

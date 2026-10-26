@@ -30,7 +30,7 @@ const centred = (s: Screen, text: string, y: number) => s.text(text, 320 - (text
 export const CYCLE_TICKS = HOLD_TICKS + 2 * FLY_STEPS * TICKS_PER_STEP;
 
 export class StartScreen {
-  readonly blocks = titleBlocks(['CITIZEN', 'WARS'], 12, 44);
+  readonly blocks = titleBlocks(['SPACEWAR', 'LIVE'], 12, 44);
   private vx: number[] = [];
   private vy: number[] = [];
   private ticks = 0;

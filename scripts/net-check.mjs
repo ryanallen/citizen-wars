@@ -7,7 +7,7 @@
 //   pilot     a test pilot joins a match under way.
 import { chromium } from 'playwright';
 
-const url = process.env.URL ?? 'http://localhost:5199/citizen-wars/';
+const url = process.env.URL ?? 'http://localhost:5199/spacewar-live/';
 const scenario = process.argv[2] ?? 'join';
 const browser = await chromium.launch({ channel: 'msedge' });
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);

@@ -4,7 +4,7 @@
 import { chromium } from 'playwright';
 import { execSync } from 'node:child_process';
 
-const url = 'https://ryanallen.github.io/citizen-wars/';
+const url = 'https://ryanallen.github.io/spacewar-live/';
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const browser = await chromium.launch({ channel: 'msedge' });
 const page = await (await browser.newContext()).newPage();
@@ -17,7 +17,7 @@ const state = () => page.evaluate(() => {
 let s = null;
 for (let n = 0; n < 60 && s?.phase !== 'host'; n++) { await new Promise((r) => setTimeout(r, 1000)); s = await state(); }
 log('hosting on the live site:', JSON.stringify(s));
-execSync(`gh workflow run pilot.yml -R ryanallen/citizen-wars -f system=${s.system} -f seconds=150`, { stdio: 'inherit' });
+execSync(`gh workflow run pilot.yml -R ryanallen/spacewar-live -f system=${s.system} -f seconds=150`, { stdio: 'inherit' });
 log('runner started');
 let ok = false;
 for (let n = 0; n < 420; n++) {

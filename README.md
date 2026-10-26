@@ -1,8 +1,8 @@
-# Citizen Wars
+# Spacewar Live
 
 Spacewar 1985, remade for the browser and fought across the real stars near the Sun.
 
-**Play: https://ryanallen.github.io/citizen-wars/**
+**Play: https://ryanallen.github.io/spacewar-live/**
 
 Open the page and you are in a star system with whoever else is there, nearest the Sun first. There is nothing to type: the page finds the others through public Nostr relays and connects to them directly over WebRTC, with no server of its own. Send someone the address (it ends with the system, such as `#barnards-star`) and they land in the same system.
 
@@ -28,7 +28,7 @@ Tab shows the scoreboard, F8 turns sound on and off, F9 changes your call sign, 
 
 ## What it remakes
 
-Citizen Wars remakes **Spacewar, © 1985 Bill Seiler**, shareware for the IBM PC. Every rule, speed, sprite, sound and screen was read from the original program's own code and checked against it running in DOSBox-X; the sprites, font and title letters are the original's.
+Spacewar Live remakes **Spacewar, © 1985 Bill Seiler**, shareware for the IBM PC. Every rule, speed, sprite, sound and screen was read from the original program's own code and checked against it running in DOSBox-X; the sprites, font and title letters are the original's.
 
 ## Sources
 
@@ -40,7 +40,7 @@ Citizen Wars remakes **Spacewar, © 1985 Bill Seiler**, shareware for the IBM PC
 
 ```
 npm ci
-npm run dev        # http://localhost:5173/citizen-wars/
+npm run dev        # http://localhost:5173/spacewar-live/
 npm test           # the game's tests
 npm run test:live  # against the real relays
 npm run build

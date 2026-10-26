@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
 
 export default defineConfig({
-  base: '/citizen-wars/',
+  base: '/spacewar-live/',
   build: {
     target: 'es2022',
     rollupOptions: { input: { main: resolve(__dirname, 'index.html'), test: resolve(__dirname, 'test.html') } },

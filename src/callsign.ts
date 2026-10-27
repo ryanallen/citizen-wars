@@ -2,7 +2,9 @@
 // it, kept in localStorage. No accounts.
 
 const WORDS = ['RED', 'BLUE', 'GOLD', 'JADE', 'GREY', 'PINK', 'TEAL', 'RUST', 'MINT', 'PLUM', 'SAND', 'ONYX', 'LIME', 'ROSE', 'IRON', 'SNOW'];
-const KEY = 'citizen-wars.callsign';
+const KEY = 'spacewar-live.callsign';
+/** Where it was kept before the game was renamed. */
+const OLD_KEY = 'citizen-wars.callsign';
 
 export function randomCallsign(rand = Math.random): string {
   return `${WORDS[Math.floor(rand() * WORDS.length)]}-${1 + Math.floor(rand() * 99)}`;
@@ -21,8 +23,8 @@ function store(): Storage | null {
 }
 
 export function loadCallsign(): string {
-  const saved = cleanCallsign(store()?.getItem(KEY) ?? '');
-  if (saved) return saved;
+  const saved = cleanCallsign(store()?.getItem(KEY) ?? store()?.getItem(OLD_KEY) ?? '');
+  if (saved) { saveCallsign(saved); return saved; }
   const made = randomCallsign();
   saveCallsign(made);
   return made;

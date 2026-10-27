@@ -1,5 +1,5 @@
 // The design system in code: every value here is defined in
-// citizenwars/.agents/skills/design/design-system.md, which names its source.
+// spacewarlive/.agents/skills/design/design-system.md, which names its source.
 
 /** Screen: CGA 640x200, black and white only, each pixel twice as tall as wide. */
 export const SCREEN_W = 640;

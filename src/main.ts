@@ -244,4 +244,4 @@ function frame(now: number) {
 requestAnimationFrame(frame);
 
 // For tests driven from a browser.
-Object.assign(window as object, { citizenWars: app, citizenWarsOnline: () => online, citizenWarsMode: () => mode });
+Object.assign(window as object, { spacewarLive: app, spacewarLiveOnline: () => online, spacewarLiveMode: () => mode });

@@ -4,6 +4,7 @@
 export const KIND_NOTE = 30078;
 /** Handshake messages: an ephemeral kind, passed on and never stored. */
 export const KIND_SIGNAL = 25050;
+/** Kept from the game's first name: every tab still open and every note on the relays uses it. */
 export const TAG = 'citizen-wars';
 /** A note expires ten seconds out and is rewritten every five. */
 export const NOTE_LIFE_S = 10;

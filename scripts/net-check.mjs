@@ -21,7 +21,7 @@ async function player(name, address = url) {
 }
 
 const state = (p) => p.page.evaluate(() => {
-  const o = window.citizenWarsOnline?.();
+  const o = window.spacewarLiveOnline?.();
   if (!o) return null;
   const v = o.view();
   return {
@@ -29,7 +29,7 @@ const state = (p) => p.page.evaluate(() => {
     ships: [[v.game.x(0), v.game.y(0), v.game.angle[0]], [v.game.x(8), v.game.y(8), v.game.angle[8]]],
     hash: location.hash, log: o.log.slice(-3),
     acks: o.phase.kind === 'host' ? [...o.phase.host.members.values()].map((m) => [m.ack, m.input.keys, m.side]) : null,
-    seq: o.phase.kind === 'client' ? o.phase.client.seq : null, mode: window.citizenWarsMode(),
+    seq: o.phase.kind === 'client' ? o.phase.client.seq : null, mode: window.spacewarLiveMode(),
   };
 });
 

@@ -154,11 +154,13 @@ export function keysPage(base: Page, b: Bindings): Page {
   });
 }
 
-const STORE = 'citizenwars.controls';
+const STORE = 'spacewar-live.controls';
+/** Where they were kept before the game was renamed, read once and moved. */
+const OLD_STORE = 'citizenwars.controls';
 
 export function loadControls(): Controls {
   try {
-    const raw = localStorage.getItem(STORE);
+    const raw = localStorage.getItem(STORE) ?? localStorage.getItem(OLD_STORE);
     if (!raw) return defaultControls();
     const c = JSON.parse(raw) as Controls;
     const d = defaultControls();

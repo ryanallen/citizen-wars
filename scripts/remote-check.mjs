@@ -10,7 +10,7 @@ const browser = await chromium.launch({ channel: 'msedge' });
 const page = await (await browser.newContext()).newPage();
 await page.goto(url);
 const state = () => page.evaluate(() => {
-  const o = window.citizenWarsOnline?.();
+  const o = window.spacewarLiveOnline?.();
   if (!o) return null;
   return { phase: o.phase.kind, system: o.system, members: o.phase.kind === 'host' ? o.phase.host.members.size : 0, roster: o.view().roster.map((m) => m.callsign) };
 });

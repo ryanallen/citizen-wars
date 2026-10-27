@@ -27,7 +27,7 @@ for (const step of steps) {
   else if (verb === 'eval') console.log(JSON.stringify(await page.evaluate(arg)));
   else if (verb === 'shot') {
     const data = await page.evaluate(() => {
-      const s = window.citizenWars.screen.px;
+      const s = window.spacewarLive.screen.px;
       const c = document.createElement('canvas');
       c.width = 640; c.height = 200;
       const x = c.getContext('2d');

@@ -1,4 +1,4 @@
-// The DOS game's play, routine by routine from citizenwars/docs/original.md,
+// The DOS game's play, routine by routine from spacewarlive/docs/original.md,
 // for any number of ships (ticket, Decisions: how a system holds more than two
 // ships). Positions and velocities are 16.16 fixed point kept as whole numbers
 // (value * 65536), so every sum is the code's own integer sum. With two ships
@@ -39,7 +39,7 @@ const sbyte = (v: number) => { const b = byte(v); return b >= 128 ? b - 256 : b;
  */
 export type Rules = 'original' | 'last-standing' | 'respawn';
 
-/** `pickups`: energy and shield pickups float on the field (Citizen Wars, not the DOS game). */
+/** `pickups`: energy and shield pickups float on the field (Spacewar Live, not the DOS game). */
 export interface Options { planet: boolean; gravity: boolean; robot: boolean[]; pickups?: boolean }
 
 /** Pickups (ticket, Decisions: pickups): what each gives, and how they come and go. */
@@ -1046,7 +1046,7 @@ export class Game {
     }
   }
 
-  // ---- pickups (Citizen Wars) ---------------------------------------------------
+  // ---- pickups (Spacewar Live) --------------------------------------------------
 
   /** At most this many on the field: two for two ships, one more for every two after, six at most. */
   pickupCap(): number {

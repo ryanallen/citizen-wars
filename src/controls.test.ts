@@ -19,11 +19,20 @@ describe('bindings', () => {
     const old = structuredClone(DEFAULT_BINDINGS) as Record<number, [string, string]>;
     old[Key.Impulse] = ['KeyW', 'KeyX'];
     delete old[Key.Up];
-    const store = { 'citizenwars.controls': JSON.stringify({ bindings: old, mouseAim: true }) } as Record<string, string>;
+    const store = { 'spacewar-live.controls': JSON.stringify({ bindings: old, mouseAim: true }) } as Record<string, string>;
     globalThis.localStorage = { getItem: (k: string) => store[k] ?? null } as Storage;
     const b = loadControls().bindings;
     expect(b[Key.Up]).toEqual(['KeyW', '']);
     expect(b[Key.Impulse]).toEqual(['KeyX', '']);
+  });
+
+  test('keys saved under the old name are still read', () => {
+    const saved = bind(DEFAULT_BINDINGS, Key.Photon, 1, 'KeyX');
+    const store = { 'citizenwars.controls': JSON.stringify({ bindings: saved, mouseAim: false }) } as Record<string, string>;
+    globalThis.localStorage = { getItem: (k: string) => store[k] ?? null } as Storage;
+    const c = loadControls();
+    expect(c.bindings[Key.Photon][1]).toBe('KeyX');
+    expect(c.mouseAim).toBe(false);
   });
 
   test('clearing the first key moves the second up', () => {

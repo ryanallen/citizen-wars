@@ -1,4 +1,4 @@
-// Drawn for Citizen Wars, not read from the original: the bar icons that take
+// Drawn for Spacewar Live, not read from the original: the bar icons that take
 // the place of the S and E letters (design-system.md, Bars). Same 16x8 box and
 // columns as the font, so each sits where its letter did.
 

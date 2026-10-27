@@ -12,6 +12,7 @@
 import { Identity, Pool, type NostrEvent } from './nostr';
 import { KIND_NOTE, CAP } from './config';
 
+/** Kept from the game's first name, so the kills counted under it still count. */
 export const GAME_TAG = 'citizen-wars-game';
 /** Notes asked for a page; relays cap a query at a few hundred, so the count reads back in pages. */
 const PAGE = 500;

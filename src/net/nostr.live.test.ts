@@ -29,7 +29,7 @@ test('which relays answer, store a note, and pass an ephemeral message', async (
     await a.publish(await me.sign({ kind: 25050, tags: [['p', them.pubkey], ['t', tag]], content: 'hello' }));
     const ephemeral = await heard;
     // Stored: a note with an expiry, read back by b.
-    const note = await me.sign({ kind: 30078, tags: [['d', tag], ['t', 'citizen-wars-check'], ['expiration', String(now() + 60)]], content: '{}' });
+    const note = await me.sign({ kind: 30078, tags: [['d', tag], ['t', 'spacewar-live-check'], ['expiration', String(now() + 60)]], content: '{}' });
     const ok = await a.publish(note);
     const stored = ok && await new Promise<boolean>((resolve) => {
       const timer = setTimeout(() => resolve(false), 5000);

@@ -113,6 +113,26 @@ describe('many ships', () => {
     expect(g.shield[1]).toBe(31);
   });
 
+  test('a person leaving a ship someone hit dies as it goes and the hitter scores; one never hit, or a robot, does not', () => {
+    const g = system(3);
+    g.lastHit[1] = 2;
+    g.leave(1);
+    expect([g.deaths[1], g.kills[2]]).toEqual([1, 1]);
+    g.leave(0);
+    expect(g.deaths[0]).toBe(0);
+    g.lastHit[2] = 0;
+    g.leave(2, false);
+    expect([g.deaths[2], g.kills[0]]).toEqual([0, 0]);
+  });
+
+  test('a player arriving starts with full bars and no score of the side before', () => {
+    const g = system(3);
+    g.kills[1] = 4; g.deaths[1] = 2;
+    g.leave(1);
+    g.arrive(1);
+    expect([g.kills[1], g.deaths[1], g.shield[1], g.energy[g.ship(1)]]).toEqual([0, 0, 31, 127]);
+  });
+
   test('with last ship standing, the round ends when one is left', () => {
     const g = system(3, 'last-standing');
     g.options.robot[0] = false;

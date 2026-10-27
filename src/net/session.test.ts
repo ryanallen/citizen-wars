@@ -42,3 +42,26 @@ test('a member cannot take over another by passing traffic for it', () => {
   expect(host.members.get('b')?.via).toBe(null);
   expect(host.members.has(host.pubkey)).toBe(false);
 });
+
+test('a member who leaves after being hit dies on the host, and the hitter scores', () => {
+  const { host } = hostWith('a');
+  const g = host.game;
+  const side = host.members.get('a')!.side;
+  g.lastHit[side] = host.side;
+  g.shield[side] = 3; g.energy[g.ship(side)] = 0;
+  host.remove('a');
+  expect(g.kills[host.side]).toBe(1);
+  // Alone, the host gets the robot on that side: a fresh ship, not the one that fled.
+  expect(g.options.robot[side]).toBe(true);
+  expect([g.shield[side], g.energy[g.ship(side)], g.deaths[side]]).toEqual([31, 127, 0]);
+});
+
+test('the robot standing in steps aside for a person without scoring anyone', () => {
+  const { host } = hostWith();
+  const g = host.game;
+  const robot = g.options.robot.indexOf(true);
+  g.lastHit[robot] = host.side;
+  const h = host as unknown as { add(m: object): void };
+  h.add({ pubkey: 'p', callsign: 'P', side: 1, joined: 0, input: { keys: 0, aim: 0 }, ack: 0, peer: { send() {}, close() {} }, via: null });
+  expect(g.kills[host.side]).toBe(0);
+});

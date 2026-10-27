@@ -294,14 +294,24 @@ export class Game {
     return best;
   }
 
-  /** A player arrives: their ship joins the round at the freest start point. */
+  /** A player arrives: their ship joins the round at the freest start point, with no score of the last one's. */
   arrive(s: number): void {
     this.present[s] = true;
+    this.wins[s] = 0; this.kills[s] = 0; this.deaths[s] = 0;
     this.spawn(s, this.freestStart(s));
   }
 
-  /** A player leaves: their ship and torpedoes go. */
-  leave(s: number): void {
+  /**
+   * A player leaves: their ship and torpedoes go. A person leaving a ship in play
+   * that someone has hit dies as it goes, the hitter scoring, so leaving and
+   * coming back is never a free escape with full bars (ticket, Decisions: leaving).
+   */
+  leave(s: number, flees = true): void {
+    const i = this.ship(s);
+    if (flees && this.lastHit[s] >= 0 && (this.state[i] > 0 || this.hyperStep[s])) {
+      this.deaths[s]++;
+      this.kills[this.lastHit[s]]++;
+    }
     this.present[s] = false;
     for (let i = this.ship(s); i < this.ship(s) + 8; i++) { this.state[i] = 0; this.drawn[i] = false; }
     this.exploding[s] = -1;

@@ -220,9 +220,13 @@ export class Host {
     const { w, h } = fieldSize(Math.max(2, count));
     g.setField(w, h);
     for (let s = 0; s < g.ships; s++) {
+      // A robot stepping aside for a person is not fleeing.
+      const wasRobot = g.options.robot[s];
       g.options.robot[s] = s === robot;
+      // A person's side handed to the robot: the person leaves, and the robot arrives fresh.
+      if (s === robot && g.present[s] && !wasRobot) g.leave(s);
       if (want(s) && !g.present[s]) g.arrive(s);
-      else if (!want(s) && g.present[s]) g.leave(s);
+      else if (!want(s) && g.present[s]) g.leave(s, !wasRobot);
     }
   }
 

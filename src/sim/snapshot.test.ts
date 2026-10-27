@@ -74,3 +74,18 @@ test('the game clock and its name ride in the world, to clients and the next hos
   loadWorld(h, saveWorld(g));
   expect([h.elapsed, h.born]).toEqual([123456, 1_800_000_000]);
 });
+
+test('pickups ride in the world: their kind, place, life and random numbers', () => {
+  const a = busy(12);
+  a.options.pickups = true;
+  for (let n = 0; n < 1200; n++) a.step();
+  expect(a.pickups.length).toBeGreaterThan(0);
+  const b = new Game(3);
+  b.options.robot = [true, true];
+  loadWorld(b, saveWorld(a));
+  expect(b.options.pickups).toBe(true);
+  expect(b.pickups).toEqual(a.pickups);
+  for (let n = 0; n < 2000; n++) { a.step(); b.step(); }
+  expect(b.pickups).toEqual(a.pickups);
+  expect(saveWorld(b)).toEqual(saveWorld(a));
+});

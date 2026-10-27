@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { Game, Key, PASSES_PER_TICK, EXPLOSION_FRAMES, EXPLOSION_TICKS_PER_FRAME, EXPLOSION_HOLD_TICKS } from './game';
+import { Game, Key, PICKUP, PICKUP_LIFE, PICKUP_SHIELD, PICKUP_SOUND, PASSES_PER_TICK, EXPLOSION_FRAMES, EXPLOSION_TICKS_PER_FRAME, EXPLOSION_HOLD_TICKS } from './game';
 import { sin, cos } from './tables';
 import { keysInput } from './input';
 import { aim } from './robot';
@@ -435,5 +435,111 @@ describe('robots', () => {
     g.options.robot[1] = true;
     g.step();
     expect(g.angle[8]).toBe(aim(g.x(0) - g.x(8), g.y(0) - g.y(8)));
+  });
+});
+
+describe('pickups', () => {
+  function field(seed = 7): Game {
+    const g = new Game(seed);
+    g.rules = 'respawn';
+    g.options = { planet: true, gravity: false, robot: [false, false], pickups: true };
+    g.startRound();
+    return g;
+  }
+
+  /** Put a pickup right on side s's ship and run one tick. */
+  function touch(g: Game, s: number, kind: number): void {
+    const i = g.ship(s);
+    g.pickups = [{ kind, x: g.x(i) + 5, y: g.y(i) - 5, life: PICKUP_LIFE }];
+    g.step();
+  }
+
+  test('the 1985 game has none', () => {
+    const g = round();
+    idle(g, 3000);
+    expect(g.pickups).toEqual([]);
+  });
+
+  test('one comes every 128 ticks up to the cap, clear of the star and the ships', () => {
+    const g = field();
+    expect(g.pickupCap()).toBe(2);
+    untilTick(g, 1);
+    idle(g, 127);
+    expect(g.pickups.length).toBe(1);
+    idle(g, 128 * 6);
+    expect(g.pickups.length).toBe(2);
+    const b = g.bodies[0];
+    for (const p of g.pickups) {
+      expect(Math.abs(p.x - b.x) >= b.box + 16 || Math.abs(p.y - b.y) >= b.box + 16).toBe(true);
+      expect(p.x).toBeGreaterThanOrEqual(8); expect(p.x).toBeLessThan(632);
+      expect(p.y).toBeGreaterThanOrEqual(8); expect(p.y).toBeLessThan(192);
+    }
+  });
+
+  test('more ships, more pickups, six at most', () => {
+    const g = new Game(1, undefined, 16);
+    g.present.fill(false);
+    for (const n of [2, 4, 12, 16]) {
+      g.present.fill(false);
+      for (let s = 0; s < n; s++) g.present[s] = true;
+      expect(g.pickupCap()).toBe(Math.min(6, 1 + Math.ceil(n / 2)));
+    }
+  });
+
+  test('energy fills energy, even from stuck at 0', () => {
+    const g = field();
+    g.energy[0] = 0;
+    touch(g, 0, PICKUP.energy);
+    expect(g.energy[0]).toBe(127);
+    expect(g.shield[0]).toBe(31);
+    expect(g.pickups).toEqual([]);
+  });
+
+  test('shield adds 32, to 127 at most; both does both', () => {
+    const g = field();
+    touch(g, 0, PICKUP.shield);
+    expect(g.shield[0]).toBe(31 + PICKUP_SHIELD);
+    g.shield[0] = 120;
+    touch(g, 0, PICKUP.shield);
+    expect(g.shield[0]).toBe(127);
+    g.shield[1] = 10; g.energy[8] = 3;
+    touch(g, 1, PICKUP.both);
+    expect([g.shield[1], g.energy[8]]).toEqual([10 + PICKUP_SHIELD, 127]);
+  });
+
+  test('a cloaked ship takes one; a ship in hyperspace or out of reach does not', () => {
+    const g = field();
+    g.inputs[0] = keysInput(1 << Key.Cloak);
+    g.energy[0] = 50;
+    touch(g, 0, PICKUP.energy);
+    expect(g.energy[0]).toBe(127);
+    g.inputs[0] = keysInput(0);
+    const i = g.ship(1);
+    g.pickups = [{ kind: PICKUP.energy, x: g.x(i) + 12, y: g.y(i), life: PICKUP_LIFE }];
+    g.step();
+    expect(g.pickups.length).toBe(1);
+  });
+
+  test('one left alone goes after its life', () => {
+    const g = field();
+    g.pickups = [{ kind: PICKUP.energy, x: 320, y: 30, life: PICKUP_LIFE }];
+    g.options.pickups = true;
+    idle(g, PICKUP_LIFE - 1);
+    expect(g.pickups.some((p) => p.x === 320 && p.y === 30)).toBe(true);
+    idle(g, 1);
+    expect(g.pickups.some((p) => p.x === 320 && p.y === 30)).toBe(false);
+  });
+
+  test('taking one chirps up three notes for the ship that took it', () => {
+    const g = field();
+    g.listener = 0;
+    touch(g, 0, PICKUP.energy);
+    const heard: number[] = [g.speaker.divisor];
+    for (let n = 0; n < PICKUP_SOUND.length - 1; n++) { g.step(); heard.push(g.speaker.divisor); }
+    expect(heard).toEqual([...PICKUP_SOUND]);
+    g.step();
+    expect(g.soundFlags & 0x40).toBe(0);
+    touch(g, 1, PICKUP.energy);
+    expect(g.soundFlags & 0x40).toBe(0);
   });
 });

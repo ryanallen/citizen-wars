@@ -57,7 +57,7 @@ export class Online {
     this.me = o.me ?? Identity.random();
     this.wanted = o.wanted ?? null;
     this.notes = new Pool(o.relays.notes);
-    this.practice.options = { planet: true, gravity: false, robot: [false, true] };
+    this.practice.options = { planet: true, gravity: false, robot: [false, true], pickups: true };
     this.practice.startRound();
   }
 

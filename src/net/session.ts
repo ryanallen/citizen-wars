@@ -88,6 +88,7 @@ export class Host {
       const g = this.game;
       g.rules = 'respawn';
       Object.assign(g.options, playfieldFor(o.system, matchAt(this.now())));
+      g.options.pickups = true;
       g.present[this.side] = true;
       g.setStars(o.stars ?? [{ mass: 1, radius: 1 }]);
       g.startRound();

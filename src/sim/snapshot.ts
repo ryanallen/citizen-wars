@@ -39,7 +39,7 @@ class Reader {
   u32(): number { const v = this.view.getUint32(this.at); this.at += 4; return v; }
 }
 
-const VERSION = 3;
+const VERSION = 4;
 const RULES = ['original', 'last-standing', 'respawn'] as const;
 
 const bits = (a: boolean[]) => a.reduce((m, v, k) => (v ? m | (1 << k) : m), 0);
@@ -54,7 +54,7 @@ export function saveWorld(g: Game): Uint8Array {
   w.u16(g.w); w.u16(g.h);
   w.u8(g.tick); w.u8(g.planetFrame); w.u32(g.starSeed);
   w.u32(g.elapsed); w.u32(g.born);
-  w.u8((g.options.planet ? 1 : 0) | (g.options.gravity ? 2 : 0) | (g.paused ? 4 : 0));
+  w.u8((g.options.planet ? 1 : 0) | (g.options.gravity ? 2 : 0) | (g.paused ? 4 : 0) | (g.options.pickups ? 8 : 0));
   w.u16(bits(g.present)); w.u16(bits(g.options.robot));
   w.u8(g.bodies.length);
   for (const b of g.bodies) { w.i16(b.x); w.i16(b.y); w.u8(b.pull); w.u8(b.box); w.u8(Math.round(b.scale * 16)); }
@@ -81,6 +81,10 @@ export function saveWorld(g: Game): Uint8Array {
   }
   w.u8(g.labels); w.u8(g.soundFlags); w.u8(g.soundCount);
   for (const b of g.rng.state()) w.u8(b);
+  for (const b of g.pickupRng.state()) w.u8(b);
+  w.u8(g.pickupSound);
+  w.u8(g.pickups.length);
+  for (const p of g.pickups) { w.u8(p.kind); w.i16(p.x); w.i16(p.y); w.u16(p.life); }
   // Particles by their seeds only, while something uses them: a hyperspace cloud or an explosion.
   for (let s = 0; s < g.ships; s++) {
     if (g.hyperStep[s]) w.u32(g.hyperSeed[s]);
@@ -100,7 +104,7 @@ export function loadWorld(g: Game, bytes: Uint8Array): void {
   g.elapsed = r.u32(); g.born = r.u32();
   const f = r.u8();
   // Whether sound is on stays each player's own.
-  g.options.planet = !!(f & 1); g.options.gravity = !!(f & 2); g.paused = !!(f & 4);
+  g.options.planet = !!(f & 1); g.options.gravity = !!(f & 2); g.paused = !!(f & 4); g.options.pickups = !!(f & 8);
   g.present = unbits(r.u16(), g.ships);
   g.options.robot = unbits(r.u16(), g.ships);
   const nb = r.u8();
@@ -136,6 +140,12 @@ export function loadWorld(g: Game, bytes: Uint8Array): void {
   const rng: number[] = [];
   for (let n = 0; n < 6; n++) rng.push(r.u8());
   g.rng.restore(rng);
+  const prng: number[] = [];
+  for (let n = 0; n < 6; n++) prng.push(r.u8());
+  g.pickupRng.restore(prng);
+  g.pickupSound = r.u8();
+  g.pickups = [];
+  for (let n = r.u8(); n > 0; n--) g.pickups.push({ kind: r.u8(), x: r.i16(), y: r.i16(), life: r.u16() });
   for (let s = 0; s < g.ships; s++) {
     if (g.hyperStep[s]) g.hyperSeed[s] = r.u32();
     if (g.exploding[s] >= 0) g.exSeed[s] = r.u32();

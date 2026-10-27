@@ -39,7 +39,18 @@ const sbyte = (v: number) => { const b = byte(v); return b >= 128 ? b - 256 : b;
  */
 export type Rules = 'original' | 'last-standing' | 'respawn';
 
-export interface Options { planet: boolean; gravity: boolean; robot: boolean[] }
+/** `pickups`: energy and shield pickups float on the field (Citizen Wars, not the DOS game). */
+export interface Options { planet: boolean; gravity: boolean; robot: boolean[]; pickups?: boolean }
+
+/** Pickups (ticket, Decisions: pickups): what each gives, and how they come and go. */
+export const PICKUP = { energy: 0, shield: 1, both: 2 } as const;
+export const PICKUP_LIFE = 2048;
+export const PICKUP_BLINK = 256;
+export const PICKUP_EVERY = 128;
+export const PICKUP_REACH = 12;
+export const PICKUP_SHIELD = 32;
+export const PICKUP_SOUND = [0x400, 0x400, 0x200, 0x200, 0x100, 0x100] as const;
+export interface Pickup { kind: number; x: number; y: number; life: number }
 
 export interface Speaker { on: boolean; divisor: number }
 
@@ -98,6 +109,11 @@ export class Game {
   lastHit: number[];
   starSeed = 0;
   labels = 0;
+  /** Pickups on the field, from their own random numbers so the DOS game's stay as they were. */
+  pickups: Pickup[] = [];
+  readonly pickupRng: Rng;
+  /** Ticks into the pickup chirp. */
+  pickupSound = 0;
 
   // Hyperspace clouds: 32 particles a ship. Explosions: 90 a ship.
   hx: number[]; hy: number[]; hvx: number[]; hvy: number[];
@@ -120,6 +136,7 @@ export class Game {
   constructor(seed: number, screen = new Screen(), ships = 2) {
     this.screen = screen;
     this.rng = new Rng(seed);
+    this.pickupRng = new Rng(seed ^ 0x5eed1e);
     this.ships = ships;
     this.slots = ships * 8;
     const n = (v: number, len = this.slots) => new Array<number>(len).fill(v);
@@ -165,11 +182,11 @@ export class Game {
     return v;
   }
 
-  private randField(size: number): number {
+  private randField(size: number, rng = this.rng): number {
     let mask = 1;
     while (mask < size) mask <<= 1;
     for (;;) {
-      const v = this.rng.next() & (mask - 1);
+      const v = rng.next() & (mask - 1);
       if (v >= 8 && v < size - 8) return v;
     }
   }
@@ -186,6 +203,7 @@ export class Game {
       this.oldy[i] = Math.round(this.oldy[i] * sy);
     }
     for (const b of this.bodies) { b.x = Math.round((b.x + 1) * sx) - 1; b.y = Math.round((b.y + 1) * sy) - 1; }
+    for (const p of this.pickups) { p.x = Math.round(p.x * sx); p.y = Math.round(p.y * sy); }
     this.w = w;
     this.h = h;
   }
@@ -234,6 +252,8 @@ export class Game {
     // A hyperspace cloud left over from the last round would teleport a ship; the original keeps it, this does not.
     this.hyperStep.fill(0);
     this.exploding.fill(-1);
+    this.pickups = [];
+    this.pickupSound = 0;
     const count = this.present.filter(Boolean).length;
     let n = 0;
     for (let s = 0; s < this.ships; s++) if (this.present[s]) this.spawn(s, this.startPoint(n++, Math.max(2, count)));
@@ -397,6 +417,7 @@ export class Game {
         const t = this.phaserTimer[s];
         if (t >= 0 && t !== 0x14) this.phaserTimer[s] = t - 1;
       }
+      if (this.options.pickups) this.pickupTick();
       this.sound();
       for (let s = 0; s < this.ships; s++) if (this.hyperStep[s]) this.hyperTravel(s);
     }
@@ -989,6 +1010,14 @@ export class Game {
     if (f & 0x10) {
       const steps = this.hyperStep.reduce((a, b) => a + b, 0);
       this.speaker = { on: true, divisor: (steps & 255) * 256 };
+    } else if (f & 0x40) {
+      if (this.pickupSound >= PICKUP_SOUND.length) {
+        this.soundFlags &= ~0x40;
+        this.pickupSound = 0;
+        if (!this.soundFlags) off();
+      } else {
+        this.speaker = { on: true, divisor: PICKUP_SOUND[this.pickupSound++] };
+      }
     } else if (f & 2) {
       if (this.soundCount >= 128) return off();
       this.soundCount += 8;
@@ -1004,6 +1033,52 @@ export class Game {
       if ((this.tick & 0x1f) === 0) this.speaker = { on: true, divisor: this.tick & 0x20 ? 0x800 : 0x400 };
     } else if (f & 8) {
       this.speaker = { on: true, divisor: (Math.random() * 0x10000) | 0x2000 };
+    }
+  }
+
+  // ---- pickups (Citizen Wars) ---------------------------------------------------
+
+  /** At most this many on the field: two for two ships, one more for every two after, six at most. */
+  pickupCap(): number {
+    const n = this.present.filter(Boolean).length;
+    return Math.min(6, 1 + Math.ceil(n / 2));
+  }
+
+  /** Once a tick: each pickup ages, a ship touching one takes it, and every 128 ticks a new one may come. */
+  private pickupTick(): void {
+    this.pickups = this.pickups.filter((p) => --p.life > 0 && !this.collect(p));
+    if ((this.tick & (PICKUP_EVERY - 1)) === 0 && this.pickups.length < this.pickupCap()) this.dropPickup();
+  }
+
+  /** The first ship in reach of a pickup, cloaked or not, takes it. */
+  private collect(p: Pickup): boolean {
+    for (let s = 0; s < this.ships; s++) {
+      const i = this.ship(s);
+      if (!this.present[s] || this.state[i] <= 0) continue;
+      if (Math.abs(this.x(i) - p.x) >= PICKUP_REACH || Math.abs(this.y(i) - p.y) >= PICKUP_REACH) continue;
+      if (p.kind !== PICKUP.shield) this.energy[i] = 127;
+      if (p.kind !== PICKUP.energy) this.shield[s] = Math.min(127, this.shield[s] + PICKUP_SHIELD);
+      if (this.listener === null || this.listener === s) {
+        this.soundFlags |= 0x40;
+        this.pickupSound = 0;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /** A new pickup somewhere clear of the stars and every ship: half energy, three in eight shield, one in eight both. */
+  private dropPickup(): void {
+    const r = this.pickupRng;
+    for (let tries = 0; tries < 8; tries++) {
+      const x = this.randField(this.w, r);
+      const y = this.randField(this.h, r);
+      const nearStar = this.options.planet && this.bodies.some((b) => Math.abs(x - b.x) < b.box + 16 && Math.abs(y - b.y) < b.box + 16);
+      const nearShip = this.present.some((p, s) => p && this.alive(this.ship(s)) && Math.abs(x - this.x(this.ship(s))) < 48 && Math.abs(y - this.y(this.ship(s))) < 32);
+      if (nearStar || nearShip) continue;
+      const k = r.next() & 7;
+      this.pickups.push({ kind: k === 0 ? PICKUP.both : k <= 4 ? PICKUP.energy : PICKUP.shield, x, y, life: PICKUP_LIFE });
+      return;
     }
   }
 

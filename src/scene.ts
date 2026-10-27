@@ -8,7 +8,8 @@ import {
   shipLeft, shipRight, torpedoLeft, torpedoRight, torpedoExplosion, planet as planetSheet,
 } from './design/bitmaps';
 import { BAR, SCREEN_W, SCREEN_H } from './design/tokens';
-import { icons, ICON } from './design/icons';
+import { icons, ICON, pickups } from './design/icons';
+import { PICKUP_BLINK } from './sim/game';
 
 const hi = (v: number) => Math.floor(v / 65536);
 
@@ -54,6 +55,8 @@ export function drawWorld(g: Game, s: Screen, o: SceneOptions = {}): void {
   s.clear();
   for (const [x, y] of o.sky ?? g.starPoints()) s.xorPixel(x, y);
   if (g.options.planet) for (const b of g.bodies) drawStar(s, g.planetFrame, X(b.x + 1) - 1, Y(b.y + 1) - 1, b.scale);
+  // Pickups blink every 8 ticks in their last 256 (design-system.md, Pickups).
+  for (const p of g.pickups) if (p.life > PICKUP_BLINK || !(p.life & 8)) s.blit(pickups, p.kind, X(p.x), Y(p.y));
   for (let side = 0; side < g.ships; side++) {
     const i = g.ship(side);
     if (g.state[i] > 0 && !(g.ctl[side] & 2)) s.blit(side % 2 ? shipRight : shipLeft, ((g.angle[i] + 8) & 0xf0) >> 4, X(g.x(i)), Y(g.y(i)));

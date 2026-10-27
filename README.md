@@ -26,6 +26,8 @@ Two hands: the mouse aims and fires, the left hand flies.
 
 Tab shows the scoreboard, F8 turns sound on and off, F9 changes your call sign, and Esc goes to the offline game: the 1985 menu, two players on one keyboard or against the robots (F2 play, F3 and F4 robots, F5 planet, F6 gravity, F7 pause, F1 the help pages).
 
+**Pickups** float in online systems and the practice round while connecting: fly into one to take it. A boxed lightning bolt fills your energy, even when it has run out; a boxed shield adds 32 shield; a boxed plus does both. A few are out at once, more as the system fills, and each blinks before it goes after about 28 seconds. The offline 1985 game has none, as the original had none.
+
 ## What it remakes
 
 Spacewar Live remakes **Spacewar, © 1985 Bill Seiler**, shareware for the IBM PC. Every rule, speed, sprite, sound and screen was read from the original program's own code and checked against it running in DOSBox-X; the sprites, font and title letters are the original's.
